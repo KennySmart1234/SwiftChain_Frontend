@@ -104,21 +104,23 @@ export function useToast(): UseToastReturn {
   }, []);
 
   const showToast = useCallback((config: ToastConfig) => {
-    const { title, description, variant = 'default', duration } = config;
+    const { title, message, description, variant = 'default', duration } = config;
+    // Support both `title` (component API) and `message` (service API)
+    const text = title ?? message ?? '';
     switch (variant) {
       case 'destructive':
       case 'error':
-        toastService.error(title, description, duration);
+        toastService.error(text, description, duration);
         break;
       case 'loading':
-        toastService.loading(title, description);
+        toastService.loading(text, description);
         break;
       case 'success':
-        toastService.success(title, description, duration);
+        toastService.success(text, description, duration);
         break;
       case 'info':
       default:
-        toastService.info(title, description, duration);
+        toastService.info(text, description, duration);
         break;
     }
   }, []);

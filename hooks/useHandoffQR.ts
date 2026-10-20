@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { shipmentHandoffService } from '../services/shipmentHandoffService';
-import { HandoffQRData, QRHandoffToken } from '../types/shipment';
-import { useToast } from './useToast';
+import { shipmentHandoffService } from '@/services/shipmentHandoffService';
+import type { HandoffQRData } from '@/types/shipment';
+import { useToast } from '@/hooks/useToast';
 
 export function useHandoffQR(deliveryId: string, enabled: boolean = true) {
   return useQuery<HandoffQRData, Error>({
@@ -16,7 +16,7 @@ export function useHandoffQR(deliveryId: string, enabled: boolean = true) {
 
 export function useGenerateHandoffQR() {
   const queryClient = useQueryClient();
-  const { showToast } = useToast();
+  const { toast } = useToast();
 
   return useMutation({
     mutationFn: (deliveryId: string) =>
@@ -26,16 +26,10 @@ export function useGenerateHandoffQR() {
       queryClient.invalidateQueries({
         queryKey: ['handoffQR', data.deliveryId],
       });
-      showToast({
-        type: 'success',
-        message: 'QR code generated successfully',
-      });
+      toast({ variant: 'success', message: 'QR code generated successfully' });
     },
     onError: (error) => {
-      showToast({
-        type: 'error',
-        message: 'Failed to generate QR code',
-      });
+      toast({ variant: 'error', message: 'Failed to generate QR code' });
       console.error('QR generation error:', error);
     },
   });
@@ -43,7 +37,7 @@ export function useGenerateHandoffQR() {
 
 export function useVerifyHandoffQR() {
   const queryClient = useQueryClient();
-  const { showToast } = useToast();
+  const { toast } = useToast();
 
   return useMutation({
     mutationFn: ({ deliveryId, token }: { deliveryId: string; token: string }) =>
@@ -56,16 +50,10 @@ export function useVerifyHandoffQR() {
       queryClient.invalidateQueries({
         queryKey: ['delivery', data.id],
       });
-      showToast({
-        type: 'success',
-        message: 'Handoff verified successfully!',
-      });
+      toast({ variant: 'success', message: 'Handoff verified successfully!' });
     },
     onError: (error) => {
-      showToast({
-        type: 'error',
-        message: 'Failed to verify handoff',
-      });
+      toast({ variant: 'error', message: 'Failed to verify handoff' });
       console.error('Handoff verification error:', error);
     },
   });

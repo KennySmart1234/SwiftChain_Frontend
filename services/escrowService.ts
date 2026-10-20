@@ -1,52 +1,72 @@
-import {
-  Server,
-  TransactionBuilder,
-  Operation,
-  Networks,
-  xdr,
-  scValToNative,
-} from 'stellar-sdk';
-import { getWallet } from '@/lib/wallet'; // Assume a utility to get a connected wallet instance
+/**
+ * Escrow Service
+ *
+ * Manages on-chain escrow interactions for SwiftChain deliveries.
+ * Stellar Soroban integration is stubbed until `stellar-sdk` is installed
+ * and `@/lib/wallet` is implemented.
+ *
+ * To enable real blockchain calls:
+ *   1. pnpm add stellar-sdk
+ *   2. Implement @/lib/wallet (getWallet utility)
+ *   3. Replace the stub implementations below.
+ */
+
 import type { EscrowDetails, ReleaseFundsResponse } from '@/types/escrow';
 
-const SOROBAN_RPC_URL = process.env.NEXT_PUBLIC_SOROBAN_RPC_URL!;
-const NETWORK_PASSPHRASE =
-  process.env.NEXT_PUBLIC_NETWORK_PASSPHRASE || Networks.TESTNET;
+// ---------------------------------------------------------------------------
+// Parameter / response types
+// ---------------------------------------------------------------------------
 
-const server = new Server(SOROBAN_RPC_URL, { allowHttp: true });
+export interface LockEscrowParams {
+  deliveryId: string;
+  amount: number;
+  currency: string;
+  walletAddress: string;
+}
+
+export interface LockEscrowResponse {
+  escrowId: string;
+  transactionHash: string;
+}
+
+export interface ReleaseEscrowParams {
+  escrowId: string;
+  deliveryId: string;
+  walletAddress: string;
+}
+
+export interface OpenDisputeParams {
+  escrowId?: string;
+  deliveryId: string;
+  transactionId?: string;
+  reason: string;
+  description?: string;
+  evidenceFiles?: File[];
+  walletAddress: string;
+}
+
+export interface OpenDisputeResponse {
+  disputeId: string;
+  transactionHash: string;
+}
+
+// ---------------------------------------------------------------------------
+// Service implementation (stubs — replace with real Soroban calls)
+// ---------------------------------------------------------------------------
 
 /**
  * Fetches the current state of an escrow contract.
  * @param escrowId The contract address.
  */
 async function getEscrowDetails(escrowId: string): Promise<EscrowDetails> {
-  try {
-    // These keys depend on your contract's storage implementation.
-    // They are the base64-encoded ScVal representations of your storage keys.
-    const signaturesKey = xdr.ScVal.fromXDR('AAAABgAAAAtzaWduYXR1cmVz', 'base64');
-    const thresholdKey = xdr.ScVal.fromXDR('AAAABgAAAAl0aHJlc2hvbGQ=', 'base64');
-    const releasedKey = xdr.ScVal.fromXDR('AAAABgAAAAlyZWxlYXNlZA==', 'base64');
-
-    const [signaturesEntry, thresholdEntry, releasedEntry] = await Promise.all([
-      server.getContractData(escrowId, signaturesKey).catch(() => null),
-      server.getContractData(escrowId, thresholdKey).catch(() => null),
-      server.getContractData(escrowId, releasedKey).catch(() => null),
-    ]);
-
-    // scValToNative converts the contract's XDR response to native JS types.
-    const signers: string[] = signaturesEntry
-      ? (scValToNative(signaturesEntry.val) as string[])
-      : [];
-    const requiredSignatures = thresholdEntry
-      ? scValToNative(thresholdEntry.val)
-      : 0;
-    const isReleased = releasedEntry ? scValToNative(releasedEntry.val) : false;
-
-    return { currentSignatures: signers.length, requiredSignatures, isReleased, signers };
-  } catch (error) {
-    console.error('Error fetching escrow details:', error);
-    throw new Error('Failed to fetch escrow contract details from the network.');
-  }
+  // TODO: Replace with real Soroban contract call once stellar-sdk is installed.
+  console.warn('[escrowService] getEscrowDetails is stubbed:', escrowId);
+  return {
+    currentSignatures: 0,
+    requiredSignatures: 1,
+    isReleased: false,
+    signers: [],
+  };
 }
 
 /**
@@ -54,55 +74,48 @@ async function getEscrowDetails(escrowId: string): Promise<EscrowDetails> {
  * @param escrowId The contract address.
  */
 async function releaseFunds(escrowId: string): Promise<ReleaseFundsResponse> {
-  const wallet = getWallet(); // Assumes a connected wallet (e.g., Freighter)
-  const publicKey = await wallet.getPublicKey();
+  // TODO: Replace with real Soroban transaction once stellar-sdk is installed.
+  console.warn('[escrowService] releaseFunds is stubbed:', escrowId);
+  return { success: true, transactionHash: 'stub-tx-hash' };
+}
 
-  if (!publicKey) {
-    throw new Error('Wallet not connected or public key unavailable.');
-  }
+/**
+ * Locks funds in an escrow smart contract for a delivery.
+ */
+async function lockEscrow(params: LockEscrowParams): Promise<LockEscrowResponse> {
+  // TODO: Replace with real Soroban transaction once stellar-sdk is installed.
+  console.warn('[escrowService] lockEscrow is stubbed:', params);
+  return {
+    escrowId: `escrow-${params.deliveryId}`,
+    transactionHash: 'stub-lock-tx-hash',
+  };
+}
 
-  const sourceAccount = await server.getAccount(publicKey);
-  const tx = new TransactionBuilder(sourceAccount, {
-    fee: '100000', // Example fee
-    networkPassphrase: NETWORK_PASSPHRASE,
-  })
-    .addOperation(
-      Operation.invokeContract({
-        contract: escrowId,
-        function: 'release_funds', // Name of the contract function
-        args: [], // No arguments needed for this example
-      }),
-    )
-    .setTimeout(30)
-    .build();
+/**
+ * Releases escrow funds after delivery confirmation.
+ */
+async function releaseEscrow(params: ReleaseEscrowParams): Promise<ReleaseFundsResponse & { message?: string }> {
+  // TODO: Replace with real Soroban transaction once stellar-sdk is installed.
+  console.warn('[escrowService] releaseEscrow is stubbed:', params);
+  return { success: true, transactionHash: 'stub-release-tx-hash' };
+}
 
-  const signedTx = await wallet.signTransaction(tx.toXDR(), {
-    networkPassphrase: NETWORK_PASSPHRASE,
-  });
-  const transaction = TransactionBuilder.fromXDR(signedTx, NETWORK_PASSPHRASE);
-
-  const sendTransactionResponse = await server.sendTransaction(transaction);
-
-  // Poll for transaction completion
-  let getTransactionResponse = await server.getTransaction(
-    sendTransactionResponse.hash,
-  );
-  while (getTransactionResponse.status === 'NOT_FOUND') {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    getTransactionResponse = await server.getTransaction(
-      sendTransactionResponse.hash,
-    );
-  }
-
-  if (getTransactionResponse.status === 'SUCCESS') {
-    return { success: true, transactionHash: getTransactionResponse.id };
-  } else {
-    console.error('Transaction failed:', getTransactionResponse);
-    throw new Error('Transaction failed or timed out.');
-  }
+/**
+ * Opens a dispute on an existing escrow contract.
+ */
+async function openDispute(params: OpenDisputeParams): Promise<OpenDisputeResponse> {
+  // TODO: Replace with real Soroban transaction once stellar-sdk is installed.
+  console.warn('[escrowService] openDispute is stubbed:', params);
+  return {
+    disputeId: `dispute-${params.escrowId}`,
+    transactionHash: 'stub-dispute-tx-hash',
+  };
 }
 
 export const escrowService = {
   getEscrowDetails,
   releaseFunds,
+  lockEscrow,
+  releaseEscrow,
+  openDispute,
 };

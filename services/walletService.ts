@@ -124,6 +124,102 @@ class WalletService {
     this.balanceCache = null;
     this.lastFetchTime = 0;
   }
+
+  /**
+   * Register a connected wallet public key with the backend.
+   */
+  async connect(publicKey: string): Promise<{ success: boolean; message?: string; publicKey: string }> {
+    try {
+      const response = await fetch('/api/wallet/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ publicKey }),
+      });
+      const data = await response.json();
+      return { success: response.ok, message: data.message, publicKey };
+    } catch (error) {
+      console.error('Error connecting wallet:', error);
+      return { success: false, message: 'Failed to connect wallet', publicKey };
+    }
+  }
+
+  /**
+   * Notify the backend to invalidate the wallet session.
+   */
+  async disconnect(): Promise<void> {
+    try {
+      await fetch('/api/wallet/disconnect', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : ''}`,
+        },
+      });
+    } catch (error) {
+      console.debug('Disconnect API call failed (session cleared client-side):', error);
+    }
+  }
+
+  /**
+   * Fetch the status of a blockchain transaction by hash.
+   */
+  async getTransactionStatus(transactionHash: string): Promise<import('@/types/transaction').TransactionResponse> {
+    const response = await fetch(`/api/wallet/transaction/${transactionHash}`, {
+      headers: {
+        Authorization: `Bearer ${typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : ''}`,
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch transaction status: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  /**
+   * Fetch pending multi-signature operations for a wallet address.
+   */
+  async getPendingMultiSigOperations(
+    walletAddress: string
+  ): Promise<{ success: boolean; message?: string; operations?: import('@/hooks/useMultiSigApprovals').PendingMultiSigOperation[] }> {
+    try {
+      const response = await fetch(`/api/wallet/multisig/pending?address=${encodeURIComponent(walletAddress)}`, {
+        headers: {
+          Authorization: `Bearer ${typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : ''}`,
+        },
+      });
+      const data = await response.json();
+      return { success: response.ok, operations: data.data, message: data.message };
+    } catch (error) {
+      console.error('Error fetching multi-sig operations:', error);
+      return { success: false, message: 'Failed to fetch pending operations' };
+    }
+  }
+
+  /**
+   * Submit a signature for a multi-sig operation.
+   */
+  async signMultiSigOperation(params: {
+    operationId: string;
+    signature: string;
+    signerPublicKey: string;
+  }): Promise<{ success: boolean; message?: string; currentSignatures?: number }> {
+    try {
+      const response = await fetch('/api/wallet/multisig/sign', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : ''}`,
+        },
+        body: JSON.stringify(params),
+      });
+      const data = await response.json();
+      return { success: response.ok, message: data.message, currentSignatures: data.currentSignatures };
+    } catch (error) {
+      console.error('Error signing multi-sig operation:', error);
+      return { success: false, message: 'Failed to sign operation' };
+    }
+  }
+
 }
 
 export const walletService = WalletService.getInstance();
