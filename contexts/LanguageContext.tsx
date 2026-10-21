@@ -13,7 +13,7 @@ export const LANGUAGE_LABELS: Record<Locale, string> = {
   pcm: 'Pidgin',
   ha: 'Hausa',
   yo: 'Yoruba',
-  ig: 'Igbo',
+  ig: 'Igbo', 
 };
 
 export const LanguageContext = createContext<LanguageContextValue>({
