@@ -50,13 +50,11 @@ class DeliverySocketService {
           callbacks.onStatusUpdate(data.status as DeliveryStatus);
         }
       } catch (error) {
-        // eslint-disable-next-line no-console
         console.error('[DeliverySocketService] Failed to parse message:', error);
       }
     };
 
     this.socket.onerror = (error: Event) => {
-      // eslint-disable-next-line no-console
       console.error('[DeliverySocketService] WebSocket error:', error);
       callbacks.onError?.(error);
     };
