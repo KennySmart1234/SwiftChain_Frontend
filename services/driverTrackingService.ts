@@ -81,8 +81,8 @@ class DriverTrackingService {
    * Called automatically when the first subscriber is added.
    */
   connect(): void {
-    if (this.socket?.readyState === WebSocket.OPEN) {
-      return; // Already connected
+    if (this.socket) {
+      return;
     }
 
     this.isIntentionallyClosed = false;
@@ -113,6 +113,7 @@ class DriverTrackingService {
       this.socket.onclose = () => {
         // eslint-disable-next-line no-console
         console.log('[DriverTrackingService] Connection closed');
+        this.socket = null;
 
         if (!this.isIntentionallyClosed && this.subscribers.size > 0) {
           this.scheduleReconnect();
@@ -264,6 +265,7 @@ class DriverTrackingService {
     }
 
     this.reconnectCount = 0;
+    this.subscribers.clear();
   }
 
   /**

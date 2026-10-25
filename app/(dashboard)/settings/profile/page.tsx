@@ -339,9 +339,13 @@ export default function ProfileSettingsPage() {
                   activeAddress={walletManagement.activeAddress}
                   isLoading={walletManagement.isLoading}
                   isDisconnecting={walletManagement.isDisconnecting}
+                  isSettingPrimary={walletManagement.isSettingPrimary}
+                  isConnecting={walletManagement.isConnecting}
                   error={walletManagement.error}
                   onRefresh={walletManagement.refetch}
                   onSetActive={walletManagement.setActiveWallet}
+                  onSetPrimary={(wallet) => walletManagement.setPrimaryWallet(wallet.id)}
+                  onConnect={() => walletManagement.connectWallet('freighter')}
                   onDisconnect={walletManagement.disconnectWallet}
                 />
               </section>

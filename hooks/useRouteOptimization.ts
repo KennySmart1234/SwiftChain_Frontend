@@ -25,6 +25,19 @@ export type { RouteOptimizationResult };
 
 export interface UseRouteOptimizationReturn {
   /** Waypoints in their current input order. */
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  fetchOptimizedRoute,
+  nearestNeighborOrder,
+  totalRouteDistance,
+} from '@/services/routeOptimizationService';
+import type { OptimizerWaypoint } from '@/types/routeOptimizer';
+
+/** Average assumed travel speed used to derive an ETA from distance. */
+const AVERAGE_SPEED_KMH = 40;
+
+interface UseRouteOptimizationReturn {
+  /** Waypoints in their original (unoptimized) order, as provided. */
   waypoints: OptimizerWaypoint[];
   /** Waypoints reordered by the optimizer or manual reorder calls. */
   optimizedRoute: OptimizerWaypoint[];
@@ -55,6 +68,7 @@ export interface UseRouteOptimizationReturn {
   /** Remove a waypoint by ID from the current route and recompute optimization. */
   removeWaypoint: (_waypointId: string) => void;
   /** Restore the optimized route to the initial waypoints' optimized order. */
+  /** Restore the optimized route to the nearest-neighbor result. */
   reset: () => void;
   /** Fetch optimal route from the backend/OSRM routing API with rate-limit caching. */
   optimizeRoute: () => Promise<RouteOptimizationResult>;
@@ -66,6 +80,8 @@ export interface UseRouteOptimizationReturn {
  * polyline coordinates, distance, and duration.
  *
  * @param initialWaypoints - The initial waypoints to optimize.
+ * Hook to optimize the visiting order of a set of waypoints.
+ * @param initialWaypoints - The waypoints to optimize, in any order.
  */
 export function useRouteOptimization(
   initialWaypoints: OptimizerWaypoint[],
@@ -131,6 +147,43 @@ export function useRouteOptimization(
       });
     },
     [effectiveResult.optimizedWaypoints],
+
+  const [manualRoute, setManualRoute] = useState<OptimizerWaypoint[] | null>(null);
+  const [backendRoute, setBackendRoute] = useState<OptimizerWaypoint[] | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const syncBackendRoute = async () => {
+      if (initialWaypoints.length <= 1) {
+        setBackendRoute([...initialWaypoints]);
+        return;
+      }
+
+      try {
+        const optimized = await fetchOptimizedRoute(initialWaypoints);
+        if (mounted) {
+          setBackendRoute(optimized.route);
+        }
+      } catch {
+        if (mounted) {
+          setBackendRoute(nearestNeighborRoute);
+        }
+      }
+    };
+
+    syncBackendRoute();
+
+    return () => {
+      mounted = false;
+    };
+  }, [initialWaypoints, nearestNeighborRoute]);
+
+  const optimizedRoute = manualRoute ?? backendRoute ?? nearestNeighborRoute;
+
+  const totalDistance = useMemo(
+    () => totalRouteDistance(optimizedRoute),
+    [optimizedRoute]
   );
 
   const addWaypoint = useCallback(
@@ -161,6 +214,24 @@ export function useRouteOptimization(
     },
     [activeWaypoints],
   );
+  const reorder = useCallback((fromIndex: number, toIndex: number) => {
+    setManualRoute((current) => {
+      const base = current ?? backendRoute ?? nearestNeighborRoute;
+      if (
+        fromIndex < 0 ||
+        fromIndex >= base.length ||
+        toIndex < 0 ||
+        toIndex >= base.length ||
+        fromIndex === toIndex
+      ) {
+        return base;
+      }
+      const next = [...base];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      return next;
+    });
+  }, [backendRoute, nearestNeighborRoute]);
 
   const reset = useCallback(() => {
     setManualRoute(null);

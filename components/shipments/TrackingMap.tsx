@@ -7,14 +7,18 @@
 'use client';
 
 import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { useTrackingRoute } from '@/hooks/useTrackingRoute';
 import { calculateDistanceKm } from '@/services/geofenceService';
 import { Coordinate, MapBounds, RouteData } from '@/types/tracking';
 import { AlertCircle, Loader2, Package } from 'lucide-react';
 
 const DEFAULT_AVERAGE_SPEED_KMH = 40;
+import { MapBounds } from '@/types/tracking';
+import { AlertCircle, Loader2, Package } from 'lucide-react';
 
 interface TrackingMapProps {
   deliveryId: string | null;
@@ -99,7 +103,7 @@ export function calculateEstimatedDeliveryDate(
 function FitBoundsHook({ bounds }: { bounds: MapBounds | null }) {
   const map = useMap();
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (bounds && map) {
       const leafletBounds = L.latLngBounds(
         [bounds.south, bounds.west],
@@ -198,8 +202,14 @@ export function TrackingMap({
     []
   );
 
+  // Ensure Leaflet marker default icons resolve cleanly in Next.js
+  useEffect(() => {
+    const proto = L.Icon.Default.prototype as { _getIconUrl?: unknown };
+    if (proto._getIconUrl) delete proto._getIconUrl;
+  }, []);
+
   // Handle map errors
-  React.useEffect(() => {
+  useEffect(() => {
     if (isError && error && onMapError) {
       onMapError(error);
     }

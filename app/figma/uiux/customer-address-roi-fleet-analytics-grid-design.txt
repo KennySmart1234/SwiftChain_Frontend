@@ -1,0 +1,15 @@
+LIGHT MODE DESIGN
+
+//Design Light Mode Titles
+#646 — Customer Address Book & Saved Locations (Table View): A structured table for reviewing and selecting saved pickup and drop-off addresses.
+
+#650 — ROI Dashboard: A visual reporting interface for understanding return on investment, revenue, and driver efficiency.
+
+#648 — Fleet Analytics Dashboard: An analytics workspace presenting fleet performance through clear charts and data visualizations.
+
+#644 — Customer Address Book & Saved Locations (Grid View): A card-based alternative for browsing and choosing saved shipping locations.
+
+
+//Design Light Mode reference
+https://www.figma.com/design/2kP82C0Z8z0X3CncLQmfhB/Stellar-Project-Fig?node-id=3104-2&p=f&t=8viSao94cjKWsGb3-0
+

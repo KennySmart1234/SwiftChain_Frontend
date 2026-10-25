@@ -43,6 +43,33 @@ export interface CustomsDocumentListResponse {
   data: CustomsDocument[];
 }
 
+export interface DocumentUploadResponse {
+  success: boolean;
+  message: string;
+  data: CustomsDocument;
+}
+
+export interface DocumentListResponse {
+  success: boolean;
+  message: string;
+  data: CustomsDocument[];
+  total?: number;
+}
+
+export interface UpdateResponse {
+  success: boolean;
+  message: string;
+  data: CustomsDocument;
+}
+
+export interface ExpiringDocumentList {
+  success: boolean;
+  message: string;
+  data: CustomsDocument[];
+  thresholdDays: number;
+  total?: number;
+}
+
 /** Human-readable labels for each document type. */
 export const CUSTOMS_DOC_TYPE_LABELS: Record<CustomsDocType, string> = {
   commercial_invoice: 'Commercial Invoice',

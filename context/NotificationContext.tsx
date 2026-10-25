@@ -25,7 +25,21 @@ interface NotificationContextValue {
   markAllAsRead: () => void;
 }
 
-const NotificationContext = createContext<NotificationContextValue | null>(null);
+const NotificationContext = createContext<NotificationContextValue | null>(
+  null
+);
+
+const sortNotificationsByNewestFirst = (items: Notification[]) =>
+  [...items].sort((a, b) => {
+    const timeA = new Date(a.createdAt).getTime();
+    const timeB = new Date(b.createdAt).getTime();
+
+    if (Number.isNaN(timeA) && Number.isNaN(timeB)) return 0;
+    if (Number.isNaN(timeA)) return 1;
+    if (Number.isNaN(timeB)) return -1;
+
+    return timeB - timeA;
+  });
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotificationsState] = useState<Notification[]>([]);
@@ -33,18 +47,18 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const setNotifications = useCallback((items: Notification[]) => {
-    setNotificationsState(items);
+    setNotificationsState(sortNotificationsByNewestFirst(items));
   }, []);
 
   // Called directly by the WebSocket handler — updates badge immediately
   const addNotification = useCallback((notification: Notification) => {
-    setNotificationsState((prev) => [notification, ...prev]);
+    setNotificationsState((prev) =>
+      sortNotificationsByNewestFirst([notification, ...prev])
+    );
   }, []);
 
   const markAllAsRead = useCallback(() => {
-    setNotificationsState((prev) =>
-      prev.map((n) => ({ ...n, read: true })),
-    );
+    setNotificationsState((prev) => prev.map((n) => ({ ...n, read: true })));
   }, []);
 
   return (
@@ -66,7 +80,7 @@ export function useNotificationContext(): NotificationContextValue {
   const ctx = useContext(NotificationContext);
   if (!ctx) {
     throw new Error(
-      'useNotificationContext must be used within NotificationProvider',
+      'useNotificationContext must be used within NotificationProvider'
     );
   }
   return ctx;

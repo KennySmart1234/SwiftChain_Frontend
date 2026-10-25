@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { proofService, CompressionOptions } from '@/services/proofService';
 import { useToast } from './useToast';
 
@@ -27,6 +27,10 @@ interface UseProofUploadReturn {
   isCompressing: boolean;
   uploadedProofs: UploadedProof[];
   errors: string[];
+  stagedPhoto: File | null;
+  photoPreviewUrl: string | null;
+  signatureDataUrl: string | null;
+  canSubmitBundle: boolean;
 
   handleFileCapture: (_file: File) => Promise<void>;
 
@@ -34,6 +38,11 @@ interface UseProofUploadReturn {
   clearUploadedProofs: () => void;
 
   removeProof: (_filename: string) => void;
+  stagePhoto: (_file: File) => void;
+  stageCameraCapture: (_canvas: HTMLCanvasElement) => Promise<void>;
+  setSignature: (_signatureDataUrl: string | null) => void;
+  submitProofBundle: () => Promise<boolean>;
+  resetBundle: () => void;
 }
 
 /**
@@ -51,13 +60,120 @@ export function useProofUpload({
   const [isCompressing, setIsCompressing] = useState(false);
   const [uploadedProofs, setUploadedProofs] = useState<UploadedProof[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
+  const [stagedPhoto, setStagedPhoto] = useState<File | null>(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+  const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const {
     error: toastError,
     success: toastSuccess,
-    loading: toastLoading,
-    info: toastInfo,
-    toast,
   } = useToast();
+
+  useEffect(() => {
+    return () => {
+      if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+    };
+  }, [photoPreviewUrl]);
+
+  const stagePhoto = useCallback(
+    (file: File) => {
+      if (!file.type.startsWith('image/')) {
+        const message = 'Please select an image file';
+        setErrors([message]);
+        toastError?.(message);
+        return;
+      }
+      if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+      setStagedPhoto(file);
+      setPhotoPreviewUrl(URL.createObjectURL(file));
+      setErrors([]);
+    },
+    [photoPreviewUrl, toastError]
+  );
+
+  const stageCameraCapture = useCallback(
+    async (canvas: HTMLCanvasElement) => {
+      const blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob(resolve, 'image/jpeg', 0.95);
+      });
+      if (!blob) {
+        setErrors(['Failed to capture image from camera']);
+        return;
+      }
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      stagePhoto(
+        new File([blob], `proof-${timestamp}.jpg`, { type: 'image/jpeg' })
+      );
+    },
+    [stagePhoto]
+  );
+
+  const setSignature = useCallback((value: string | null) => {
+    setSignatureDataUrl(value);
+    setErrors([]);
+  }, []);
+
+  const resetBundle = useCallback(() => {
+    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+    setStagedPhoto(null);
+    setPhotoPreviewUrl(null);
+    setSignatureDataUrl(null);
+    setErrors([]);
+  }, [photoPreviewUrl]);
+
+  const submitProofBundle = useCallback(async () => {
+    if (!stagedPhoto && signatureDataUrl) {
+      setErrors(['Add a delivery photo to submit this signature.']);
+      return false;
+    }
+    if (!stagedPhoto || !signatureDataUrl) {
+      setErrors(['A delivery photo and recipient signature are required.']);
+      return false;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(0);
+    setErrors([]);
+    try {
+      const formData = new FormData();
+      formData.append('photo', stagedPhoto);
+      formData.append('signatureDataUrl', signatureDataUrl);
+      const response = await proofService.uploadProofBundle(
+        formData,
+        deliveryId,
+        ({ loaded, total }) => {
+          if (total) setUploadProgress(Math.round((loaded / total) * 100));
+        }
+      );
+      if (!response.success || !response.data) {
+        throw new Error(response.message || 'Proof bundle upload failed');
+      }
+
+      setUploadedProofs((current) => [
+        ...current,
+        {
+          id: response.data?.photo.id,
+          filename: response.data?.photo.filename ?? stagedPhoto.name,
+          fileSize: response.data?.photo.fileSize ?? stagedPhoto.size,
+          originalSize: response.data?.photo.originalSize ?? stagedPhoto.size,
+          isCompressed: response.data?.photo.isCompressed ?? false,
+          status: 'completed',
+          uploadedAt: response.data?.photo.uploadedAt,
+          compressionProgress: 100,
+        },
+      ]);
+      resetBundle();
+      toastSuccess?.('Delivery proof submitted');
+      return true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Proof bundle upload failed';
+      setErrors([message]);
+      toastError?.(message);
+      return false;
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  }, [deliveryId, resetBundle, signatureDataUrl, stagedPhoto, toastError, toastSuccess]);
 
   const handleFileCapture = useCallback(
     async (file: File) => {
@@ -65,7 +181,7 @@ export function useProofUpload({
       if (!file.type.startsWith('image/')) {
         const errorMsg = 'Please select an image file';
         setErrors((prev) => [...prev, errorMsg]);
-        toastError(errorMsg);
+        toastError?.(errorMsg);
         return;
       }
 
@@ -148,11 +264,10 @@ export function useProofUpload({
             ? ` (compressed from ${(originalSize / (1024 * 1024)).toFixed(2)}MB to ${(compressedFile.size / (1024 * 1024)).toFixed(2)}MB)`
             : '';
 
-          toast({
-            title: 'Upload Successful',
-            description: `Proof uploaded successfully${compressionMsg}`,
-            variant: 'default',
-          });
+          toastSuccess?.(
+            'Upload Successful',
+            `Proof uploaded successfully${compressionMsg}`
+          );
         } else {
           throw new Error(response.message || 'Upload failed');
         }
@@ -169,11 +284,7 @@ export function useProofUpload({
           )
         );
 
-        toast({
-          title: 'Upload Failed',
-          description: errorMessage,
-          variant: 'destructive',
-        });
+        toastError?.('Upload Failed', errorMessage);
       } finally {
         setIsUploading(false);
         setIsCompressing(false);
@@ -181,7 +292,7 @@ export function useProofUpload({
         setCompressionProgress(0);
       }
     },
-    [deliveryId, maxSizeMB, toast]
+    [deliveryId, maxSizeMB, toastError, toastSuccess]
   );
 
   const handleCameraCapture = useCallback(
@@ -207,14 +318,10 @@ export function useProofUpload({
       } catch (error: any) {
         const errorMessage = error?.message || 'Failed to capture from camera';
         setErrors((prev) => [...prev, errorMessage]);
-        toast({
-          title: 'Camera Capture Failed',
-          description: errorMessage,
-          variant: 'destructive',
-        });
+        toastError?.('Camera Capture Failed', errorMessage);
       }
     },
-    [handleFileCapture, toast]
+    [handleFileCapture, toastError]
   );
 
   const clearUploadedProofs = useCallback(() => {
@@ -233,9 +340,18 @@ export function useProofUpload({
     isCompressing,
     uploadedProofs,
     errors,
+    stagedPhoto,
+    photoPreviewUrl,
+    signatureDataUrl,
+    canSubmitBundle: Boolean(stagedPhoto && signatureDataUrl) && !isUploading,
     handleFileCapture,
     handleCameraCapture,
     clearUploadedProofs,
     removeProof,
+    stagePhoto,
+    stageCameraCapture,
+    setSignature,
+    submitProofBundle,
+    resetBundle,
   };
 }

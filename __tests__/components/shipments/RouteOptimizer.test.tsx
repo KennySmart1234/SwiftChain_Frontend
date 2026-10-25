@@ -81,7 +81,11 @@ const RouteOptimizer = ({
       style={{ height: height || '400px' }}
     >
       {optimizedRoute.map((waypoint, index) => (
-        <div key={waypoint.id} data-testid={`marker-${waypoint.id}`}>
+        <div
+          key={waypoint.id}
+          data-testid={`marker-${waypoint.id}`}
+          data-draggable="true"
+        >
           {index + 1}. {waypoint.label}
         </div>
       ))}
@@ -194,6 +198,19 @@ describe('RouteOptimizer', () => {
       fireEvent.click(screen.getByLabelText('Move Checkpoint up'));
 
       expect(defaultReorder).toHaveBeenCalledWith(1, 0);
+    });
+
+    it('marks each marker as draggable for drag-and-drop reordering', () => {
+      mockUseRouteOptimization.mockReturnValue(mockHookReturn());
+
+      render(<RouteOptimizer waypoints={waypoints} />);
+
+      waypoints.forEach((wp) => {
+        expect(screen.getByTestId(`marker-${wp.id}`)).toHaveAttribute(
+          'data-draggable',
+          'true'
+        );
+      });
     });
 
     it('disables the up button for the first waypoint and the down button for the last', () => {

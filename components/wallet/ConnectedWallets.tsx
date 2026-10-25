@@ -20,9 +20,13 @@ export interface ConnectedWalletsProps {
   activeAddress: string | null;
   isLoading: boolean;
   isDisconnecting: boolean;
+  isSettingPrimary?: boolean;
+  isConnecting?: boolean;
   error: string | null;
   onRefresh: () => void;
   onSetActive: (_wallet: ConnectedWallet) => void;
+  onSetPrimary?: (_wallet: ConnectedWallet) => void;
+  onConnect?: () => void;
   onDisconnect: (_wallet: ConnectedWallet) => void;
 }
 
@@ -70,9 +74,13 @@ export function ConnectedWallets({
   activeAddress,
   isLoading,
   isDisconnecting,
+  isSettingPrimary = false,
+  isConnecting = false,
   error,
   onRefresh,
   onSetActive,
+  onSetPrimary,
+  onConnect,
   onDisconnect,
 }: ConnectedWalletsProps) {
   return (
@@ -84,15 +92,32 @@ export function ConnectedWallets({
             Manage the Web3 wallets linked to your SwiftChain account.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onRefresh}
-          disabled={isLoading}
-          className="inline-flex items-center justify-center gap-2 self-start rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2 self-start">
+          {onConnect && (
+            <button
+              type="button"
+              onClick={onConnect}
+              disabled={isLoading || isConnecting}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isConnecting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Wallet className="h-4 w-4" />
+              )}
+              Connect Wallet
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={isLoading}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {error && !isLoading && (
@@ -197,6 +222,17 @@ export function ConnectedWallets({
                 </div>
 
                 <div className="flex items-center gap-2 self-end sm:self-auto">
+                  {!wallet.isPrimary && onSetPrimary && (
+                    <button
+                      type="button"
+                      onClick={() => onSetPrimary(wallet)}
+                      disabled={isSettingPrimary}
+                      aria-label={`Set ${wallet.label || formatProvider(wallet.provider)} as primary wallet`}
+                      className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Set primary
+                    </button>
+                  )}
                   {!isActive && (
                     <button
                       type="button"

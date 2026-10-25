@@ -32,15 +32,18 @@ jest.mock('@/services/driverTrackingService', () => {
 });
 
 let capturedSubscriber: DriverTrackingSubscriber | null = null;
+let capturedSubscribers: DriverTrackingSubscriber[] = [];
 
 beforeEach(() => {
   capturedSubscriber = null;
+  capturedSubscribers = [];
   jest.clearAllMocks();
 
   // Capture the subscriber passed to service.subscribe
   (driverTrackingService.subscribe as jest.Mock).mockImplementation(
     (subscriber: DriverTrackingSubscriber) => {
       capturedSubscriber = subscriber;
+      capturedSubscribers.push(subscriber);
       return jest.fn(); // Return mock unsubscribe function
     },
   );
@@ -170,7 +173,7 @@ describe('useDriverLocationSocket', () => {
 
       // Advance to end of interpolation
       act(() => {
-        jest.advanceTimersByTime(250);
+        jest.advanceTimersByTime(300);
       });
 
       // Should snap to target
@@ -435,12 +438,14 @@ describe('useDriverLocationSocket', () => {
 
       // Simulate update for driver 1
       act(() => {
-        capturedSubscriber?.onLocationUpdate({
-          driverId: 'driver-1',
-          lat: 1.1,
-          lng: 1.1,
-          timestamp: 0,
-        });
+        capturedSubscribers.forEach((s) =>
+          s.onLocationUpdate({
+            driverId: 'driver-1',
+            lat: 1.1,
+            lng: 1.1,
+            timestamp: 0,
+          }),
+        );
       });
 
       await waitFor(() => {

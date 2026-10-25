@@ -1,0 +1,15 @@
+HERE ARE THE LIGHT MODE DESIGN NOTES
+
+//Design Light Mode Titles
+#664 — Table View: Tabular user and role administration, including account suspension and KYC approval actions.
+
+#666 — Platform Fee: A configuration screen for managing platform commission rates.
+
+#662 — Grid View: A card-based presentation of user and role management.
+
+#660 — List View: A streamlined list layout for administrator account-management workflows.
+
+
+//Design Light Mode reference
+https://www.figma.com/design/2kP82C0Z8z0X3CncLQmfhB/Stellar-Project-Fig?node-id=3104-2&p=f&t=8viSao94cjKWsGb3-0
+

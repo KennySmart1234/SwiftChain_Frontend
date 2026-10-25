@@ -115,4 +115,27 @@ describe('ConnectedWallets', () => {
       screen.getByRole('button', { name: /disconnect freighter wallet/i })
     ).toBeDisabled();
   });
+
+  it('calls onSetPrimary when Set primary button is clicked', () => {
+    const onSetPrimary = jest.fn();
+    render(<ConnectedWallets {...makeProps({ onSetPrimary })} />);
+
+    const setPrimaryBtn = screen.getByRole('button', {
+      name: /set ledger as primary wallet/i,
+    });
+    fireEvent.click(setPrimaryBtn);
+
+    expect(onSetPrimary).toHaveBeenCalledWith(WALLETS[1]);
+  });
+
+  it('renders Connect Wallet button when onConnect is provided and calls it on click', () => {
+    const onConnect = jest.fn();
+    render(<ConnectedWallets {...makeProps({ onConnect })} />);
+
+    const connectBtn = screen.getByRole('button', { name: /connect wallet/i });
+    expect(connectBtn).toBeInTheDocument();
+
+    fireEvent.click(connectBtn);
+    expect(onConnect).toHaveBeenCalledTimes(1);
+  });
 });

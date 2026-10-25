@@ -79,7 +79,7 @@ export const LiveStatusBadge: React.FC<LiveStatusBadgeProps> = ({
   deliveryId,
   showConnectionIndicator = true,
 }) => {
-  const { status, isConnected } = useLiveDeliveryStatus(deliveryId);
+  const { status, isConnected, isReconnecting } = useLiveDeliveryStatus(deliveryId);
   const [isFlashing, setIsFlashing] = useState(false);
 
   // Skip the flash on the very first render; only fire on subsequent changes
@@ -132,10 +132,14 @@ export const LiveStatusBadge: React.FC<LiveStatusBadgeProps> = ({
       {showConnectionIndicator && (
         <span
           aria-hidden="true"
-          title={isConnected ? 'Live' : 'Connecting…'}
+          title={isConnected ? 'Live' : isReconnecting ? 'Reconnecting…' : 'Connecting…'}
           className={[
             'w-1.5 h-1.5 rounded-full flex-shrink-0 transition-colors duration-500',
-            isConnected ? 'bg-green-400 animate-pulse' : 'bg-gray-300',
+            isConnected
+              ? 'bg-green-400 animate-pulse'
+              : isReconnecting
+                ? 'bg-amber-400 animate-pulse'
+                : 'bg-gray-300',
           ].join(' ')}
         />
       )}

@@ -7,9 +7,9 @@
 
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import { TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import { ArrowUp, ArrowDown, Download, MapPin } from 'lucide-react';
 import { useRouteOptimization } from '@/hooks/useRouteOptimization';
@@ -51,6 +51,31 @@ function downloadRouteAsJson(exportData: OptimizedRouteExport): void {
   URL.revokeObjectURL(url);
 }
 
+function getNearestTargetIndex(
+  draggedIndex: number,
+  currentRoute: OptimizerWaypoint[],
+  draggedLatLng: L.LatLng
+): number {
+  let nearestIndex = draggedIndex;
+  let nearestDistance = Number.POSITIVE_INFINITY;
+
+  currentRoute.forEach((waypoint, index) => {
+    if (index === draggedIndex) return;
+
+    const distance = Math.hypot(
+      waypoint.coordinate.latitude - draggedLatLng.lat,
+      waypoint.coordinate.longitude - draggedLatLng.lng
+    );
+
+    if (distance < nearestDistance) {
+      nearestDistance = distance;
+      nearestIndex = index;
+    }
+  });
+
+  return nearestIndex;
+}
+
 /**
  * RouteOptimizer component for reordering and exporting a delivery route.
  */
@@ -61,6 +86,18 @@ export function RouteOptimizer({
 }: RouteOptimizerProps): React.ReactElement {
   const { optimizedRoute, totalDistance, estimatedTime, reorder } =
     useRouteOptimization(waypoints);
+
+  const handleMarkerDragEnd = useCallback(
+    (index: number, latLng: L.LatLng) => {
+      if (optimizedRoute.length < 2) return;
+
+      const targetIndex = getNearestTargetIndex(index, optimizedRoute, latLng);
+      if (targetIndex !== index) {
+        reorder(index, targetIndex);
+      }
+    },
+    [optimizedRoute, reorder]
+  );
 
   const polylineCoordinates: [number, number][] = useMemo(
     () =>
@@ -104,7 +141,7 @@ export function RouteOptimizer({
     <div
       className={`rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 ${className}`}
     >
-      <MapContainer
+      <DynamicMapContainer
         center={center}
         zoom={12}
         style={{ height, width: '100%' }}
@@ -122,6 +159,14 @@ export function RouteOptimizer({
             key={waypoint.id}
             position={[waypoint.coordinate.latitude, waypoint.coordinate.longitude]}
             icon={waypointMarkerIcon(index)}
+            draggable={true}
+            eventHandlers={{
+              dragend: (event: { target: L.Marker }) => {
+                const latLng = event.target.getLatLng();
+                handleMarkerDragEnd(index, latLng);
+              },
+            }}
+            data-draggable="true"
           >
             <Popup>
               <div className="text-sm">
@@ -144,7 +189,7 @@ export function RouteOptimizer({
             opacity={0.7}
           />
         )}
-      </MapContainer>
+      </DynamicMapContainer>
 
       {/* Reorder list — up/down buttons since dnd-kit is not a dependency
           of this repo; this is a deliberate simplification of literal
@@ -187,7 +232,7 @@ export function RouteOptimizer({
 
       {/* Route info bar */}
       <div className="bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-3">
-        <div className="grid grid-cols-2 gap-4 text-sm">
+        <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
           <div>
             <p className="text-gray-600 dark:text-gray-400">Total Distance</p>
             <p

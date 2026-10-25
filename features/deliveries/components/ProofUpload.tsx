@@ -2,7 +2,8 @@
 
 import React, { useRef, useState, useEffect } from 'react';
 import { useProofUpload } from '@/hooks/useProofUpload';
-import { Camera, Upload, CheckCircle, AlertCircle, Loader } from 'lucide-react';
+import { Camera, Upload, CheckCircle, AlertCircle, Loader, PenLine } from 'lucide-react';
+import { SignatureCanvas } from '@/components/deliveries/SignatureCanvas';
 import clsx from 'clsx';
 
 interface ProofUploadProps {
@@ -23,10 +24,17 @@ export function ProofUpload({ deliveryId, maxSizeMB = 5 }: ProofUploadProps) {
     isCompressing,
     uploadedProofs,
     errors,
-    handleFileCapture,
-    handleCameraCapture,
     clearUploadedProofs,
     removeProof,
+    stagedPhoto,
+    photoPreviewUrl,
+    signatureDataUrl,
+    canSubmitBundle,
+    stagePhoto,
+    stageCameraCapture,
+    setSignature,
+    submitProofBundle,
+    resetBundle,
   } = useProofUpload({ deliveryId, maxSizeMB });
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -34,6 +42,7 @@ export function ProofUpload({ deliveryId, maxSizeMB = 5 }: ProofUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'photo' | 'signature'>('photo');
 
   // Initialize camera
   const startCamera = async () => {
@@ -76,7 +85,7 @@ export function ProofUpload({ deliveryId, maxSizeMB = 5 }: ProofUploadProps) {
         canvasRef.current.width = videoRef.current.videoWidth;
         canvasRef.current.height = videoRef.current.videoHeight;
         context.drawImage(videoRef.current, 0, 0);
-        await handleCameraCapture(canvasRef.current);
+        await stageCameraCapture(canvasRef.current);
       }
     }
   };
@@ -87,7 +96,7 @@ export function ProofUpload({ deliveryId, maxSizeMB = 5 }: ProofUploadProps) {
   ) => {
     const file = event.target.files?.[0];
     if (file) {
-      handleFileCapture(file);
+      stagePhoto(file);
     }
     // Reset input
     if (fileInputRef.current) {
@@ -106,7 +115,7 @@ export function ProofUpload({ deliveryId, maxSizeMB = 5 }: ProofUploadProps) {
     event.stopPropagation();
     const file = event.dataTransfer.files?.[0];
     if (file && file.type.startsWith('image/')) {
-      handleFileCapture(file);
+      stagePhoto(file);
     }
   };
 
@@ -119,6 +128,34 @@ export function ProofUpload({ deliveryId, maxSizeMB = 5 }: ProofUploadProps) {
 
   return (
     <div className="space-y-6">
+      <div className="grid grid-cols-2 border-b border-gray-200" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'photo'}
+          onClick={() => setActiveTab('photo')}
+          className={clsx('flex items-center justify-center gap-2 border-b-2 px-4 py-3 text-sm font-medium', {
+            'border-blue-600 text-blue-700': activeTab === 'photo',
+            'border-transparent text-gray-500': activeTab !== 'photo',
+          })}
+        >
+          <Camera className="h-4 w-4" /> Photo
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'signature'}
+          onClick={() => setActiveTab('signature')}
+          className={clsx('flex items-center justify-center gap-2 border-b-2 px-4 py-3 text-sm font-medium', {
+            'border-blue-600 text-blue-700': activeTab === 'signature',
+            'border-transparent text-gray-500': activeTab !== 'signature',
+          })}
+        >
+          <PenLine className="h-4 w-4" /> Signature
+        </button>
+      </div>
+
+      <div hidden={activeTab !== 'photo'} className="space-y-6">
       {/* Camera Section */}
       <div className="border rounded-lg overflow-hidden bg-slate-50">
         {isCameraActive ? (
@@ -172,6 +209,7 @@ export function ProofUpload({ deliveryId, maxSizeMB = 5 }: ProofUploadProps) {
       >
         <input
           ref={fileInputRef}
+          aria-label="Delivery photo file"
           type="file"
           accept="image/*"
           onChange={handleFileInputChange}
@@ -242,6 +280,56 @@ export function ProofUpload({ deliveryId, maxSizeMB = 5 }: ProofUploadProps) {
           )}
         </div>
       )}
+      </div>
+
+      <div hidden={activeTab !== 'signature'}>
+        <SignatureCanvas
+          onSave={(dataUrl) => setSignature(dataUrl)}
+          disabled={isUploading}
+        />
+      </div>
+
+      {(photoPreviewUrl || signatureDataUrl) && (
+        <div className="grid gap-4 sm:grid-cols-2" aria-label="Delivery proof preview">
+          <div className="rounded-lg border border-gray-200 p-3">
+            <p className="mb-2 text-sm font-medium text-gray-800">Delivery photo</p>
+            {photoPreviewUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={photoPreviewUrl} alt="Delivery proof preview" className="h-36 w-full rounded object-cover" />
+            ) : (
+              <p className="text-sm text-amber-700">Add a photo before submitting.</p>
+            )}
+          </div>
+          <div className="rounded-lg border border-gray-200 p-3">
+            <p className="mb-2 text-sm font-medium text-gray-800">Recipient signature</p>
+            {signatureDataUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={signatureDataUrl} alt="Recipient signature preview" className="h-36 w-full rounded object-contain" />
+            ) : (
+              <p className="text-sm text-gray-500">Signature not captured.</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={() => void submitProofBundle()}
+          disabled={!canSubmitBundle}
+          className="flex-1 rounded-lg bg-green-600 px-4 py-2 font-medium text-white disabled:cursor-not-allowed disabled:bg-gray-300"
+        >
+          {isUploading ? 'Submitting proof...' : 'Submit delivery proof'}
+        </button>
+        <button
+          type="button"
+          onClick={resetBundle}
+          disabled={!stagedPhoto && !signatureDataUrl}
+          className="rounded-lg border border-gray-300 px-4 py-2 font-medium text-gray-700 disabled:cursor-not-allowed disabled:text-gray-300"
+        >
+          Reset
+        </button>
+      </div>
 
       {/* Uploaded Proofs */}
       {uploadedProofs.length > 0 && (

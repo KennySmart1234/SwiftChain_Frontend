@@ -1,20 +1,16 @@
-// __tests__/components/DashboardOverview.test.tsx
-
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import DashboardOverview from '@/components/dashboard/DashboardOverview'; // Adjust path as needed
-import { useDashboardData } from '@/hooks/useDashboardData'; // Adjust path to your data hook
+import DashboardOverview from '@/components/dashboard/DashboardOverview';
+import { useDashboardData } from '@/hooks/useDashboardData';
 
-// Mock the data fetching hook to control loading states
 jest.mock('@/hooks/useDashboardData');
 
-describe('Component: Skeleton Loading States for Dashboard', () => {
+describe('DashboardOverview', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('renders skeleton UI placeholders when data is loading', () => {
-    // Force the loading state to true
+  it('renders skeleton placeholders while loading', () => {
     (useDashboardData as jest.Mock).mockReturnValue({
       data: null,
       isLoading: true,
@@ -23,20 +19,28 @@ describe('Component: Skeleton Loading States for Dashboard', () => {
 
     render(<DashboardOverview />);
 
-    // Assert that skeleton elements are rendered
-    const skeletons = screen.getAllByTestId('skeleton-loader');
-    expect(skeletons.length).toBeGreaterThan(0);
-
-    // Assert that actual data content is not present
-    expect(screen.queryByText(/total deliveries/i)).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('skeleton-loader').length).toBeGreaterThan(0);
+    expect(screen.queryByText(/dashboard overview/i)).not.toBeInTheDocument();
   });
 
-  it('removes skeleton loaders and renders actual data when loading completes', () => {
-    // Simulate a successful data fetch
+  it('renders metrics, active shipments, and quick actions when data loads', () => {
     (useDashboardData as jest.Mock).mockReturnValue({
       data: {
         totalDeliveries: 1450,
         activeDrivers: 32,
+        metrics: [
+          { label: 'Completed', value: '1284' },
+          { label: 'Escrowed', value: '$245k' },
+        ],
+        shipments: [
+          {
+            id: 'SC-1048',
+            route: 'Lagos → Abuja',
+            status: 'In transit',
+            eta: '18 min',
+          },
+        ],
+        quickActions: ['Create delivery', 'Assign driver'],
       },
       isLoading: false,
       error: null,
@@ -44,15 +48,18 @@ describe('Component: Skeleton Loading States for Dashboard', () => {
 
     render(<DashboardOverview />);
 
-    // Assert that skeletons are removed
-    expect(screen.queryByTestId('skeleton-loader')).not.toBeInTheDocument();
-
-    // Assert that real data is rendered
+    expect(
+      screen.getByRole('heading', { name: /dashboard overview/i })
+    ).toBeInTheDocument();
     expect(screen.getByText('1450')).toBeInTheDocument();
     expect(screen.getByText('32')).toBeInTheDocument();
+    expect(screen.getByText(/active shipments/i)).toBeInTheDocument();
+    expect(screen.getByText(/quick actions/i)).toBeInTheDocument();
+    expect(screen.getByText('SC-1048')).toBeInTheDocument();
+    expect(screen.getByText('Create delivery')).toBeInTheDocument();
   });
 
-  it('renders an error boundary or state if data fetching fails', () => {
+  it('renders an error state if data fetching fails', () => {
     (useDashboardData as jest.Mock).mockReturnValue({
       data: null,
       isLoading: false,
@@ -62,6 +69,8 @@ describe('Component: Skeleton Loading States for Dashboard', () => {
     render(<DashboardOverview />);
 
     expect(screen.queryByTestId('skeleton-loader')).not.toBeInTheDocument();
-    expect(screen.getByText(/failed to fetch dashboard metrics/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/failed to fetch dashboard metrics/i)
+    ).toBeInTheDocument();
   });
 });

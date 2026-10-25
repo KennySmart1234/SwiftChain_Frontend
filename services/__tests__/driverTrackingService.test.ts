@@ -17,7 +17,7 @@ import {
 
 // Mock WebSocket
 class MockWebSocket {
-  readyState = WebSocket.CLOSED;
+  readyState: number = WebSocket.CLOSED;
   onopen: (() => void) | null = null;
   onmessage: ((event: MessageEvent) => void) | null = null;
   onerror: ((event: Event) => void) | null = null;
@@ -298,6 +298,8 @@ describe('DriverTrackingService', () => {
       driverTrackingService.subscribe(subscriber);
       driverTrackingService.connect();
       mockWebSocket.simulateOpen();
+
+      (global.WebSocket as any).mockClear();
 
       // First reconnect after 1000ms
       mockWebSocket.simulateClose();

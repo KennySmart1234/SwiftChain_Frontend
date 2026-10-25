@@ -55,4 +55,39 @@ export const exportDataService = {
       throw new Error(error instanceof Error ? error.message : 'Failed to generate download');
     }
   },
+  /**
+   * Serialises rows to RFC 4180 CSV. Values starting with a formula character
+   * are prefixed with a quote to prevent spreadsheet formula injection.
+   */
+  toCsv(rows: Record<string, unknown>[], columns: string[]): string {
+    const escape = (value: unknown): string => {
+      let text = value === null || value === undefined ? '' : String(value);
+      if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+      return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+    };
+    const header = columns.map(escape).join(',');
+    const lines = rows.map((row) => columns.map((c) => escape(row[c])).join(','));
+    return [header, ...lines].join('\n');
+  },
+
+  /**
+   * Exports the given rows as a downloadable CSV file.
+   */
+  exportToCsv(
+    rows: Record<string, unknown>[],
+    columns: string[],
+    filename: string = 'swiftchain-export.csv'
+  ): void {
+    const blob = new Blob([exportDataService.toCsv(rows, columns)], {
+      type: 'text/csv;charset=utf-8;',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  },
 };

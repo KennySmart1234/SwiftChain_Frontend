@@ -31,6 +31,10 @@ describe('useGlobalSearch', () => {
     mockSearch.mockResolvedValue([]);
   });
 
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it('starts idle without hitting the search service', () => {
     const { result: hook } = renderHook(() => useGlobalSearch());
 
@@ -40,6 +44,27 @@ describe('useGlobalSearch', () => {
     expect(hook.current.isLoading).toBe(false);
     expect(hook.current.isEmpty).toBe(false);
     expect(mockSearch).not.toHaveBeenCalled();
+  });
+
+  it('debounces rapid query changes and searches only the final query', async () => {
+    jest.useFakeTimers();
+    const { result: hook } = renderHook(() => useGlobalSearch());
+
+    act(() => hook.current.setQuery('t'));
+    act(() => jest.advanceTimersByTime(100));
+    act(() => hook.current.setQuery('tr'));
+    act(() => jest.advanceTimersByTime(100));
+    act(() => hook.current.setQuery('trk'));
+
+    act(() => jest.advanceTimersByTime(299));
+    expect(mockSearch).not.toHaveBeenCalled();
+
+    await act(async () => {
+      jest.advanceTimersByTime(1);
+      await Promise.resolve();
+    });
+    expect(mockSearch).toHaveBeenCalledTimes(1);
+    expect(mockSearch).toHaveBeenCalledWith('trk', expect.any(AbortSignal));
   });
 
   it('groups results into Deliveries, Drivers and Transactions in canonical order', async () => {
@@ -90,7 +115,7 @@ describe('useGlobalSearch', () => {
       resolveSearch([]);
     });
 
-    expect(hook.current.isLoading).toBe(false);
+    await waitFor(() => expect(hook.current.isLoading).toBe(false));
   });
 
   it('reports an empty state only after a search has actually run', async () => {
@@ -163,6 +188,7 @@ describe('useGlobalSearch', () => {
     act(() => hook.current.setQuery('ab'));
 
     await waitFor(() => expect(firstSignal.aborted).toBe(true));
+    await waitFor(() => expect(mockSearch).toHaveBeenCalledTimes(2));
     expect(mockSearch).toHaveBeenLastCalledWith('ab', expect.any(AbortSignal));
   });
 
@@ -178,8 +204,10 @@ describe('useGlobalSearch', () => {
     const { result: hook } = renderHook(() => useGlobalSearch());
 
     act(() => hook.current.setQuery('a'));
+    await waitFor(() => expect(mockSearch).toHaveBeenCalledTimes(1));
     act(() => hook.current.setQuery('ab'));
 
+    await waitFor(() => expect(mockSearch).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(hook.current.totalResults).toBe(1));
 
     await act(async () => {
