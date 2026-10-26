@@ -10,11 +10,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { toastService, ToastConfig, ToastMessage } from '@/lib/toast';
 
 export interface UseToastReturn {
-  success: (message: string, description?: string, duration?: number) => void;
-  error: (message: string, description?: string, duration?: number) => void;
-  info: (message: string, description?: string, duration?: number) => void;
-  loading: (message: string, description?: string) => void;
-  toast: (config: ToastConfig) => void;
+  success: (_message: string, _description?: string, _duration?: number) => void;
+  error: (_message: string, _description?: string, _duration?: number) => void;
+  info: (_message: string, _description?: string, _duration?: number) => void;
+  loading: (_message: string, _description?: string) => void;
+  toast: (_config: ToastConfig) => void;
   isLoading: boolean;
   notifications: ToastMessage[];
   fetchNotifications: () => Promise<void>;
@@ -50,8 +50,8 @@ export function useToast(): UseToastReturn {
           }
         });
       }
-    } catch (err: any) {
-      console.error('Failed to fetch notifications:', err.message);
+    } catch {
+      setNotifications([]);
     } finally {
       setIsLoading(false);
     }
@@ -104,21 +104,20 @@ export function useToast(): UseToastReturn {
   }, []);
 
   const showToast = useCallback((config: ToastConfig) => {
-    const { title, description, variant = 'default', duration } = config;
+    const { message, description, variant, duration } = config;
     switch (variant) {
-      case 'destructive':
       case 'error':
-        toastService.error(title, description, duration);
+        toastService.error(message, description, duration);
         break;
       case 'loading':
-        toastService.loading(title, description);
+        toastService.loading(message, description);
         break;
       case 'success':
-        toastService.success(title, description, duration);
+        toastService.success(message, description, duration);
         break;
       case 'info':
       default:
-        toastService.info(title, description, duration);
+        toastService.info(message, description, duration);
         break;
     }
   }, []);

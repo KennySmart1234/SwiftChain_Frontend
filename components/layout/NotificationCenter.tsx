@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/react';
 import { useNotifications } from '@/hooks/useNotifications';
 
@@ -57,7 +58,7 @@ function NotificationItem({
           width: '8px',
           height: '8px',
           borderRadius: '50%',
-          background: read ? 'transparent' : typeColors[type] ?? '#6b7280',
+          background: read ? 'transparent' : (typeColors[type] ?? '#6b7280'),
           marginTop: '6px',
           flexShrink: 0,
         }}
@@ -101,6 +102,21 @@ function NotificationItem({
 export function NotificationCenter() {
   const { notifications, unreadCount, isLoading, markAllAsRead } =
     useNotifications();
+
+  const orderedNotifications = useMemo(
+    () =>
+      [...notifications].sort((a, b) => {
+        const timeA = new Date(a.createdAt).getTime();
+        const timeB = new Date(b.createdAt).getTime();
+
+        if (Number.isNaN(timeA) && Number.isNaN(timeB)) return 0;
+        if (Number.isNaN(timeA)) return 1;
+        if (Number.isNaN(timeB)) return -1;
+
+        return timeB - timeA;
+      }),
+    [notifications]
+  );
 
   return (
     <Popover style={{ position: 'relative' }}>
@@ -171,7 +187,9 @@ export function NotificationCenter() {
             borderBottom: '1px solid #e5e7eb',
           }}
         >
-          <h3 style={{ fontWeight: 700, fontSize: '0.95rem', color: '#111827' }}>
+          <h3
+            style={{ fontWeight: 700, fontSize: '0.95rem', color: '#111827' }}
+          >
             Notifications
             {unreadCount > 0 && (
               <span
@@ -234,7 +252,7 @@ export function NotificationCenter() {
               You&apos;re all caught up!
             </p>
           )}
-          {notifications.map((n) => (
+          {orderedNotifications.map((n) => (
             <NotificationItem
               key={n.id}
               title={n.title}

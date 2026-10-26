@@ -7,8 +7,12 @@
 
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
-import { calculateDistanceKm } from '@/services/geofenceService';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  fetchOptimizedRoute,
+  nearestNeighborOrder,
+  totalRouteDistance,
+} from '@/services/routeOptimizationService';
 import type { OptimizerWaypoint } from '@/types/routeOptimizer';
 
 /** Average assumed travel speed used to derive an ETA from distance. */
@@ -24,48 +28,9 @@ interface UseRouteOptimizationReturn {
   /** Estimated travel time for the optimized route, in minutes. */
   estimatedTime: number;
   /** Move a waypoint in the optimized route from one index to another. */
-  reorder: (fromIndex: number, toIndex: number) => void;
+  reorder: (_fromIndex: number, _toIndex: number) => void;
   /** Restore the optimized route to the nearest-neighbor result. */
   reset: () => void;
-}
-
-/**
- * Reorders waypoints starting from the first waypoint, repeatedly
- * visiting the nearest unvisited waypoint. This is a greedy heuristic,
- * not a true TSP solver — it's intentionally simple, but it does
- * genuinely minimize hop-to-hop distance rather than being a no-op.
- */
-function nearestNeighborOrder(points: OptimizerWaypoint[]): OptimizerWaypoint[] {
-  if (points.length <= 2) return [...points];
-
-  const remaining = [...points];
-  const ordered: OptimizerWaypoint[] = [remaining.shift() as OptimizerWaypoint];
-
-  while (remaining.length > 0) {
-    const current = ordered[ordered.length - 1];
-    let nearestIndex = 0;
-    let nearestDistance = Infinity;
-
-    remaining.forEach((candidate, index) => {
-      const distance = calculateDistanceKm(current.coordinate, candidate.coordinate);
-      if (distance < nearestDistance) {
-        nearestDistance = distance;
-        nearestIndex = index;
-      }
-    });
-
-    ordered.push(remaining.splice(nearestIndex, 1)[0]);
-  }
-
-  return ordered;
-}
-
-function totalRouteDistance(route: OptimizerWaypoint[]): number {
-  let distance = 0;
-  for (let i = 0; i < route.length - 1; i += 1) {
-    distance += calculateDistanceKm(route[i].coordinate, route[i + 1].coordinate);
-  }
-  return distance;
 }
 
 /**
@@ -81,8 +46,37 @@ export function useRouteOptimization(
   );
 
   const [manualRoute, setManualRoute] = useState<OptimizerWaypoint[] | null>(null);
+  const [backendRoute, setBackendRoute] = useState<OptimizerWaypoint[] | null>(null);
 
-  const optimizedRoute = manualRoute ?? nearestNeighborRoute;
+  useEffect(() => {
+    let mounted = true;
+
+    const syncBackendRoute = async () => {
+      if (initialWaypoints.length <= 1) {
+        setBackendRoute([...initialWaypoints]);
+        return;
+      }
+
+      try {
+        const optimized = await fetchOptimizedRoute(initialWaypoints);
+        if (mounted) {
+          setBackendRoute(optimized.route);
+        }
+      } catch {
+        if (mounted) {
+          setBackendRoute(nearestNeighborRoute);
+        }
+      }
+    };
+
+    syncBackendRoute();
+
+    return () => {
+      mounted = false;
+    };
+  }, [initialWaypoints, nearestNeighborRoute]);
+
+  const optimizedRoute = manualRoute ?? backendRoute ?? nearestNeighborRoute;
 
   const totalDistance = useMemo(
     () => totalRouteDistance(optimizedRoute),
@@ -96,7 +90,7 @@ export function useRouteOptimization(
 
   const reorder = useCallback((fromIndex: number, toIndex: number) => {
     setManualRoute((current) => {
-      const base = current ?? nearestNeighborRoute;
+      const base = current ?? backendRoute ?? nearestNeighborRoute;
       if (
         fromIndex < 0 ||
         fromIndex >= base.length ||
@@ -111,7 +105,7 @@ export function useRouteOptimization(
       next.splice(toIndex, 0, moved);
       return next;
     });
-  }, [nearestNeighborRoute]);
+  }, [backendRoute, nearestNeighborRoute]);
 
   const reset = useCallback(() => {
     setManualRoute(null);

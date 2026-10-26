@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { shipmentHandoffService } from '../services/shipmentHandoffService';
-import { HandoffQRData, QRHandoffToken } from '../types/shipment';
+import { HandoffQRData } from '../types/shipment';
 import { useToast } from './useToast';
 
 export function useHandoffQR(deliveryId: string, enabled: boolean = true) {
@@ -16,7 +16,7 @@ export function useHandoffQR(deliveryId: string, enabled: boolean = true) {
 
 export function useGenerateHandoffQR() {
   const queryClient = useQueryClient();
-  const { showToast } = useToast();
+  const { success, error: showError } = useToast();
 
   return useMutation({
     mutationFn: (deliveryId: string) =>
@@ -26,24 +26,17 @@ export function useGenerateHandoffQR() {
       queryClient.invalidateQueries({
         queryKey: ['handoffQR', data.deliveryId],
       });
-      showToast({
-        type: 'success',
-        message: 'QR code generated successfully',
-      });
+      success?.('QR code generated successfully');
     },
-    onError: (error) => {
-      showToast({
-        type: 'error',
-        message: 'Failed to generate QR code',
-      });
-      console.error('QR generation error:', error);
+    onError: () => {
+      showError?.('Failed to generate QR code');
     },
   });
 }
 
 export function useVerifyHandoffQR() {
   const queryClient = useQueryClient();
-  const { showToast } = useToast();
+  const { success, error: showError } = useToast();
 
   return useMutation({
     mutationFn: ({ deliveryId, token }: { deliveryId: string; token: string }) =>
@@ -56,17 +49,10 @@ export function useVerifyHandoffQR() {
       queryClient.invalidateQueries({
         queryKey: ['delivery', data.id],
       });
-      showToast({
-        type: 'success',
-        message: 'Handoff verified successfully!',
-      });
+      success?.('Handoff verified successfully!');
     },
-    onError: (error) => {
-      showToast({
-        type: 'error',
-        message: 'Failed to verify handoff',
-      });
-      console.error('Handoff verification error:', error);
+    onError: () => {
+      showError?.('Failed to verify handoff');
     },
   });
 }

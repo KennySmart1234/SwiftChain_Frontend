@@ -14,15 +14,13 @@ import { RouteData } from '@/types/tracking';
 
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
-// Provide a simple isAxiosError implementation on the mocked axios. The real
-// export is a type guard, so the stub is cast back to its declared signature.
-(mockedAxios.isAxiosError as unknown as jest.Mock).mockImplementation(
+// Provide a simple isAxiosError implementation on the mocked axios.
+(mockedAxios.isAxiosError as unknown as jest.Mock) = jest.fn(
   (error: any) => error && error.isAxiosError === true,
 );
 
 describe('trackingService', () => {
   const mockDeliveryId = 'delivery-123';
-  const mockCoordinate = { latitude: 6.5244, longitude: 3.3792 };
 
   const mockRouteData: RouteData = {
     deliveryId: mockDeliveryId,
