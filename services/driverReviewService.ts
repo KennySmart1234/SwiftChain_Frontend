@@ -1,5 +1,9 @@
 ﻿import axios from 'axios';
-import type { DriverReviewsPage, DriverReviewsQuery } from '@/types/driverReview';
+import type {
+  DriverReputationScore,
+  DriverReviewsPage,
+  DriverReviewsQuery,
+} from '@/types/driverReview';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 
@@ -14,7 +18,7 @@ export const driverReviewService = {
     signal?: AbortSignal,
   ): Promise<DriverReviewsPage> {
     const { data } = await axios.get<DriverReviewsPage>(
-      `${API_BASE_URL}/fleet/drivers/${driverId}/reviews`,
+      `${API_BASE_URL}/api/fleet/drivers/${driverId}/reviews`,
       {
         params: {
           page: query.page,
@@ -26,6 +30,17 @@ export const driverReviewService = {
         },
         signal,
       },
+    );
+    return data;
+  },
+
+  async getDriverReputation(
+    driverId: string,
+    signal?: AbortSignal,
+  ): Promise<DriverReputationScore> {
+    const { data } = await axios.get<DriverReputationScore>(
+      `${API_BASE_URL}/api/fleet/drivers/${driverId}/reputation`,
+      { signal },
     );
     return data;
   },

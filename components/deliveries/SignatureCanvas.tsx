@@ -27,6 +27,7 @@ export function SignatureCanvas({
     continueStroke,
     endStroke,
     hasSignature,
+    isDrawing,
     isTooLight,
     save,
     setTypedSignature,
@@ -54,6 +55,7 @@ export function SignatureCanvas({
         width={width}
         height={height}
         aria-label="Recipient signature drawing area"
+        data-drawing={isDrawing}
         className="block aspect-[18/7] w-full touch-none rounded border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:cursor-not-allowed"
         onPointerDown={beginStroke}
         onPointerMove={continueStroke}

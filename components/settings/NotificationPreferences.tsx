@@ -52,7 +52,7 @@ function Switch({
   disabled = false,
 }: {
   checked: boolean;
-  onChange: (checked: boolean) => void;
+  onChange: (_checked: boolean) => void;
   label: string;
   disabled?: boolean;
 }) {
@@ -98,16 +98,16 @@ export function NotificationPreferences(): ReactElement {
     error,
     togglePreference,
     savePreferences,
-    clearError,
+    resetPreferences,
+    retry,
   } = useNotificationPreferences();
 
   // Surface load/save errors as toasts, matching repo toast conventions
   useEffect(() => {
     if (error) {
       toast.error(error);
-      clearError();
     }
-  }, [error, clearError]);
+  }, [error]);
 
   const handleSave = async () => {
     const ok = await savePreferences();
@@ -128,9 +128,33 @@ export function NotificationPreferences(): ReactElement {
     );
   }
 
+  if (error) {
+    return (
+      <div
+        className="rounded-lg border border-red-200 bg-red-50 p-5 text-red-800"
+        role="alert"
+      >
+        <div className="flex items-center gap-2 font-medium">
+          <AlertCircle className="h-5 w-5" />
+          {error}
+        </div>
+        <button
+          type="button"
+          onClick={() => void retry()}
+          className="mt-4 rounded-md border border-red-300 bg-white px-4 py-2 text-sm font-semibold"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   const categories = (
     Object.keys(CATEGORY_META) as NotificationCategory[]
   ).map((category) => ({ category, ...CATEGORY_META[category] }));
+  const hasPreferences = categories.some(
+    ({ category }) => (preferences[category] ?? []).length > 0,
+  );
 
   return (
     <section
@@ -156,7 +180,11 @@ export function NotificationPreferences(): ReactElement {
       </div>
 
       {/* Categories stack vertically on mobile */}
-      <div className="mt-6 flex flex-col gap-6">
+      {!hasPreferences ? (
+        <p className="mt-6 rounded-md border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500">
+          No notification preferences available.
+        </p>
+      ) : <div className="mt-6 flex flex-col gap-6">
         {categories.map(({ category, label, description, icon }) => {
           const items = preferences[category] ?? [];
 
@@ -211,13 +239,21 @@ export function NotificationPreferences(): ReactElement {
             </div>
           );
         })}
-      </div>
+      </div>}
 
-      <div className="mt-6 flex items-center justify-end">
+      <div className="mt-6 flex items-center justify-end gap-3">
+        <button
+          type="button"
+          onClick={resetPreferences}
+          disabled={isSaving || !hasPreferences}
+          className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Reset to defaults
+        </button>
         <button
           type="button"
           onClick={() => void handleSave()}
-          disabled={isSaving}
+          disabled={isSaving || !hasPreferences}
           data-testid="save-preferences"
           className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
         >

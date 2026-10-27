@@ -1,155 +1,91 @@
-import { act, renderHook } from '@testing-library/react';
-import jsQR from 'jsqr';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { useMobileQrScanner } from '@/hooks/useMobileQrScanner';
+import { qrDecoderService } from '@/services/qrDecoderService';
+import { qrScannerService } from '@/services/qrScannerService';
 
-jest.mock('jsqr', () => ({ __esModule: true, default: jest.fn() }));
+jest.mock('@/services/qrDecoderService', () => ({
+  qrDecoderService: { decode: jest.fn() },
+}));
+jest.mock('@/services/qrScannerService', () => ({
+  qrScannerService: { verifyQrCode: jest.fn() },
+}));
 
-const mockedJsQr = jsQR as jest.MockedFunction<typeof jsQR>;
-const stopTrack = jest.fn();
-const stream = {
-  getTracks: () => [{ stop: stopTrack }],
-} as unknown as MediaStream;
-const context = {
-  drawImage: jest.fn(),
-  getImageData: jest.fn(() => ({
-    data: new Uint8ClampedArray(16),
-    width: 2,
-    height: 2,
-  })),
-};
-
-function videoElement(): HTMLVideoElement {
-  const video = document.createElement('video');
-  Object.defineProperty(video, 'readyState', {
-    configurable: true,
-    value: HTMLMediaElement.HAVE_CURRENT_DATA,
-  });
-  Object.defineProperty(video, 'videoWidth', { configurable: true, value: 2 });
-  Object.defineProperty(video, 'videoHeight', { configurable: true, value: 2 });
-  Object.defineProperty(video, 'srcObject', {
-    configurable: true,
-    writable: true,
-    value: null,
-  });
-  video.play = jest.fn().mockResolvedValue(undefined);
-  return video;
-}
+const decode = qrDecoderService.decode as jest.Mock;
+const verify = qrScannerService.verifyQrCode as jest.Mock;
+const getUserMedia = jest.fn();
 
 describe('useMobileQrScanner', () => {
   beforeEach(() => {
-    jest.useFakeTimers();
     jest.clearAllMocks();
+    jest.useFakeTimers();
     Object.defineProperty(navigator, 'mediaDevices', {
       configurable: true,
-      value: { getUserMedia: jest.fn().mockResolvedValue(stream) },
+      value: { getUserMedia },
     });
-    jest
-      .spyOn(HTMLCanvasElement.prototype, 'getContext')
-      .mockReturnValue(context as unknown as CanvasRenderingContext2D);
   });
 
-  afterEach(() => {
-    jest.runOnlyPendingTimers();
-    jest.useRealTimers();
-    jest.restoreAllMocks();
-  });
+  afterEach(() => jest.useRealTimers());
 
-  it('requests the rear camera with iOS-safe constraints', async () => {
-    const { result } = renderHook(() =>
-      useMobileQrScanner({ autoStart: false }),
-    );
-    const video = videoElement();
-    result.current.videoRef.current = video;
+  it('maps denied camera permission to a recoverable state', async () => {
+    getUserMedia.mockRejectedValue(new DOMException('Denied', 'NotAllowedError'));
+    const { result } = renderHook(() => useMobileQrScanner());
 
-    await act(async () => result.current.startScanning());
-
-    expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledWith({
-      audio: false,
-      video: {
-        facingMode: { ideal: 'environment' },
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-      },
-    });
-    expect(video.getAttribute('playsinline')).toBe('true');
-    expect(result.current.permission).toBe('granted');
-    expect(result.current.isScanning).toBe(true);
-  });
-
-  it('decodes one frame per second and stops after a result', async () => {
-    mockedJsQr.mockReturnValueOnce({
-      data: 'handoff-123',
-      binaryData: [],
-      chunks: [],
-      location: {} as ReturnType<typeof jsQR> extends infer R
-        ? R extends { location: infer L }
-          ? L
-          : never
-        : never,
-      version: 1,
-    });
-    const onDecode = jest.fn();
-    const { result } = renderHook(() =>
-      useMobileQrScanner({ autoStart: false, onDecode }),
-    );
-    result.current.videoRef.current = videoElement();
-    await act(async () => result.current.startScanning());
-
-    act(() => {
-      jest.advanceTimersByTime(999);
-    });
-    expect(mockedJsQr).not.toHaveBeenCalled();
-
-    act(() => {
-      jest.advanceTimersByTime(1);
-    });
-
-    expect(result.current.data).toBe('handoff-123');
-    expect(onDecode).toHaveBeenCalledWith('handoff-123');
-    expect(result.current.isScanning).toBe(false);
-    expect(stopTrack).toHaveBeenCalledTimes(1);
-  });
-
-  it('reports a denied camera permission', async () => {
-    const denied = new DOMException('Denied', 'NotAllowedError');
-    jest
-      .mocked(navigator.mediaDevices.getUserMedia)
-      .mockRejectedValueOnce(denied);
-    const { result } = renderHook(() =>
-      useMobileQrScanner({ autoStart: false }),
-    );
-    result.current.videoRef.current = videoElement();
-
-    await act(async () => result.current.startScanning());
+    await act(async () => result.current.startCamera());
 
     expect(result.current.permission).toBe('denied');
     expect(result.current.error).toBe('Camera permission was denied.');
   });
 
-  it('reports unsupported camera APIs without throwing', async () => {
-    Object.defineProperty(navigator, 'mediaDevices', {
-      configurable: true,
-      value: undefined,
+  it('decodes a live frame and verifies the detected QR value', async () => {
+    const stop = jest.fn();
+    getUserMedia.mockResolvedValue({ getTracks: () => [{ stop }] });
+    decode.mockReturnValue('HANDOFF-QR-1');
+    verify.mockResolvedValue({
+      success: true,
+      deliveryId: 'DEL-1',
+      message: 'Verified',
     });
-    const { result } = renderHook(() =>
-      useMobileQrScanner({ autoStart: false }),
-    );
+    const { result, unmount } = renderHook(() => useMobileQrScanner());
+    const video = document.createElement('video');
+    const canvas = document.createElement('canvas');
+    Object.defineProperties(video, {
+      readyState: { configurable: true, value: HTMLMediaElement.HAVE_CURRENT_DATA },
+      videoHeight: { configurable: true, value: 480 },
+      videoWidth: { configurable: true, value: 640 },
+    });
+    video.play = jest.fn().mockResolvedValue(undefined);
+    const context = { drawImage: jest.fn() } as unknown as CanvasRenderingContext2D;
+    jest.spyOn(canvas, 'getContext').mockReturnValue(context);
+    result.current.videoRef.current = video;
+    result.current.canvasRef.current = canvas;
 
-    await act(async () => result.current.startScanning());
+    await act(async () => result.current.startCamera());
+    await act(async () => {
+      jest.advanceTimersByTime(250);
+      await Promise.resolve();
+    });
 
-    expect(result.current.permission).toBe('unavailable');
-    expect(result.current.error).toContain('not available');
+    await waitFor(() => expect(verify).toHaveBeenCalledWith('HANDOFF-QR-1'));
+    expect(result.current.result?.deliveryId).toBe('DEL-1');
+    expect(decode).toHaveBeenCalledWith(context, 640, 480);
+    unmount();
+    expect(stop).toHaveBeenCalled();
   });
 
-  it('stops every media track on unmount', async () => {
-    const { result, unmount } = renderHook(() =>
-      useMobileQrScanner({ autoStart: false }),
-    );
-    result.current.videoRef.current = videoElement();
-    await act(async () => result.current.startScanning());
+  it('verifies a manually entered code without camera access', async () => {
+    verify.mockResolvedValue({
+      success: true,
+      deliveryId: 'DEL-MANUAL',
+      message: 'Verified',
+    });
+    const { result } = renderHook(() => useMobileQrScanner());
+    act(() => result.current.setManualCode(' MANUAL-1 '));
 
-    unmount();
+    await act(async () => {
+      expect(await result.current.submitManualCode()).toBe(true);
+    });
 
-    expect(stopTrack).toHaveBeenCalledTimes(1);
+    expect(verify).toHaveBeenCalledWith('MANUAL-1');
+    expect(result.current.result?.deliveryId).toBe('DEL-MANUAL');
   });
 });

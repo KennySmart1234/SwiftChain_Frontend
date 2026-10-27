@@ -53,6 +53,7 @@ export function useSignatureCanvas({
   minimumInkLength = MIN_SIGNATURE_INK_LENGTH,
 }: UseSignatureCanvasOptions) {
   const [hasSignature, setHasSignature] = useState(false);
+  const [isDrawing, setIsDrawing] = useState(false);
   const [isTooLight, setIsTooLight] = useState(false);
   const [typedSignature, setTypedSignatureState] = useState('');
   const drawingRef = useRef(false);
@@ -75,6 +76,7 @@ export function useSignatureCanvas({
     const canvas = canvasRef.current;
     canvas?.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
     drawingRef.current = false;
+    setIsDrawing(false);
     lastPointRef.current = null;
     inkLengthRef.current = 0;
     setTypedSignatureState('');
@@ -100,6 +102,7 @@ export function useSignatureCanvas({
       context.beginPath();
       context.moveTo(point.x, point.y);
       drawingRef.current = true;
+      setIsDrawing(true);
       lastPointRef.current = point;
       setHasSignature(true);
       updateQuality(inkLengthRef.current, '');
@@ -131,6 +134,7 @@ export function useSignatureCanvas({
       if (!drawingRef.current) return;
       canvasRef.current?.releasePointerCapture?.(event.pointerId);
       drawingRef.current = false;
+      setIsDrawing(false);
       lastPointRef.current = null;
       updateQuality(inkLengthRef.current, '');
     },
@@ -142,6 +146,7 @@ export function useSignatureCanvas({
       const canvas = canvasRef.current;
       canvas?.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
       drawingRef.current = false;
+      setIsDrawing(false);
       lastPointRef.current = null;
       inkLengthRef.current = 0;
       setTypedSignatureState(value);
@@ -175,6 +180,7 @@ export function useSignatureCanvas({
     continueStroke,
     endStroke,
     hasSignature,
+    isDrawing,
     isTooLight,
     save,
     setTypedSignature,
