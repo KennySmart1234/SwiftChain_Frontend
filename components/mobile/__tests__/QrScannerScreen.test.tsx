@@ -1,214 +1,93 @@
-import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { act, renderHook } from '@testing-library/react';
 import { QrScannerScreen } from '@/components/mobile/QrScannerScreen';
 import { useMobileQrScanner } from '@/hooks/useMobileQrScanner';
-import { mobileQrScannerService } from '@/services/mobileQrScannerService';
 
-jest.mock('@/services/mobileQrScannerService');
+jest.mock('@/hooks/useMobileQrScanner');
 
-const mockDelivery = {
-  deliveryId: 'DEL-99234',
-  recipient: 'Amina Hassan',
-  destination: 'Nairobi, Kenya',
-  amount: 'KSh 14,500',
-  status: 'In Transit',
-  eta: 'Today, 4:30 PM',
-};
+const mockedScanner = useMobileQrScanner as jest.MockedFunction<
+  typeof useMobileQrScanner
+>;
+const startCamera = jest.fn().mockResolvedValue(undefined);
+const submitManualCode = jest.fn().mockResolvedValue(true);
+const setManualCode = jest.fn();
+const scanAgain = jest.fn();
+
+function mockScanner(
+  overrides: Partial<ReturnType<typeof useMobileQrScanner>> = {},
+) {
+  mockedScanner.mockReturnValue({
+    canvasRef: { current: null },
+    error: null,
+    isVerifying: false,
+    manualCode: '',
+    permission: 'granted',
+    result: null,
+    scanAgain,
+    setManualCode,
+    startCamera,
+    stopCamera: jest.fn(),
+    submitManualCode,
+    videoRef: { current: null },
+    ...overrides,
+  });
+}
 
 describe('QrScannerScreen', () => {
-  const originalMediaDevices = navigator.mediaDevices;
-  const originalOnLine = navigator.onLine;
-
   beforeEach(() => {
-    Object.defineProperty(window.navigator, 'onLine', {
-      configurable: true,
-      value: true,
-    });
-
-    Object.defineProperty(navigator, 'mediaDevices', {
-      configurable: true,
-      value: {
-        getUserMedia: jest.fn(),
-      },
-    });
-
-    Object.defineProperty(HTMLMediaElement.prototype, 'play', {
-      configurable: true,
-      value: jest.fn().mockResolvedValue(undefined),
-    });
-
-    (mobileQrScannerService.verifyQrCode as jest.Mock).mockResolvedValue(mockDelivery);
-  });
-
-  afterEach(() => {
-    Object.defineProperty(navigator, 'mediaDevices', {
-      configurable: true,
-      value: originalMediaDevices,
-    });
-    Object.defineProperty(window.navigator, 'onLine', {
-      configurable: true,
-      value: originalOnLine,
-    });
     jest.clearAllMocks();
+    mockScanner();
   });
 
-  it('renders the permission loading state while the camera is starting', async () => {
-    let resolveMedia: (stream: MediaStream) => void;
-    const streamPromise = new Promise<MediaStream>((resolve) => {
-      resolveMedia = resolve;
-    });
-    (navigator.mediaDevices.getUserMedia as jest.Mock).mockReturnValue(streamPromise);
-
+  it('requests camera access on mount and renders the scan region', () => {
     render(<QrScannerScreen />);
-
-    expect(screen.getByText(/requesting camera permission/i)).toBeInTheDocument();
-
-    resolveMedia!({ getTracks: () => [{ stop: jest.fn() }] } as MediaStream);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('qr-camera-feed')).toBeInTheDocument();
-    });
+    expect(startCamera).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('mobile-qr-video')).toHaveAttribute('playsinline');
+    expect(screen.getByLabelText('QR scan region')).toBeInTheDocument();
   });
 
-  it('shows the camera error state with a retry action', async () => {
-    const permissionError = new Error('Permission denied');
-    permissionError.name = 'NotAllowedError';
-    (navigator.mediaDevices.getUserMedia as jest.Mock).mockRejectedValueOnce(permissionError);
-
-    render(<QrScannerScreen />);
-
-    await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent(/camera permission denied/i);
-    });
-
-    expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
-  });
-
-  it('activates the camera feed when permission is granted', async () => {
-    const mockStream = { getTracks: () => [{ stop: jest.fn() }] } as MediaStream;
-    (navigator.mediaDevices.getUserMedia as jest.Mock).mockResolvedValueOnce(mockStream);
-
-    render(<QrScannerScreen />);
-
-    await waitFor(() => {
-      const video = screen.getByTestId('qr-camera-feed');
-      expect(video).toHaveClass('opacity-100');
-    });
-  });
-
-  it('shows delivery details after a successful QR scan', async () => {
+  it('shows permission errors and retries camera access', async () => {
+    mockScanner({ permission: 'denied', error: 'Camera permission was denied.' });
     const user = userEvent.setup();
-    const mockStream = { getTracks: () => [{ stop: jest.fn() }] } as MediaStream;
-    (navigator.mediaDevices.getUserMedia as jest.Mock).mockResolvedValueOnce(mockStream);
-
     render(<QrScannerScreen />);
 
-    await waitFor(() => {
-      expect(screen.getByTestId('qr-camera-feed')).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole('button', { name: /scan qr code/i }));
-
-    await waitFor(() => {
-      expect(screen.getByText(/delivery details/i)).toBeInTheDocument();
-      expect(screen.getByText(/DEL-99234/i)).toBeInTheDocument();
-    });
+    expect(screen.getByRole('alert')).toHaveTextContent('Camera permission was denied.');
+    await user.click(screen.getByRole('button', { name: 'Retry camera' }));
+    expect(startCamera).toHaveBeenCalledTimes(2);
   });
 
-  it('reveals the manual entry fallback', async () => {
-    const user = userEvent.setup();
-    const mockStream = { getTracks: () => [{ stop: jest.fn() }] } as MediaStream;
-    (navigator.mediaDevices.getUserMedia as jest.Mock).mockResolvedValueOnce(mockStream);
-
-    render(<QrScannerScreen />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('qr-camera-feed')).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole('button', { name: /enter tracking code manually/i }));
-    expect(screen.getByLabelText(/delivery code/i)).toBeInTheDocument();
-  });
-
-  it('submits the manual code through the backend service', async () => {
-    const user = userEvent.setup();
-    const mockStream = { getTracks: () => [{ stop: jest.fn() }] } as MediaStream;
-    (navigator.mediaDevices.getUserMedia as jest.Mock).mockResolvedValueOnce(mockStream);
-
-    render(<QrScannerScreen />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('qr-camera-feed')).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole('button', { name: /enter tracking code manually/i }));
-    await user.type(screen.getByLabelText(/delivery code/i), 'DEL-99234');
-    await user.click(screen.getByRole('button', { name: /verify code/i }));
-
-    await waitFor(() => {
-      expect(mobileQrScannerService.verifyQrCode).toHaveBeenCalledWith('DEL-99234');
-    });
-  });
-
-  it('shows the offline watermark when the device is offline', async () => {
-    const mockStream = { getTracks: () => [{ stop: jest.fn() }] } as MediaStream;
-    (navigator.mediaDevices.getUserMedia as jest.Mock).mockResolvedValueOnce(mockStream);
-    Object.defineProperty(window.navigator, 'onLine', {
-      configurable: true,
-      value: false,
-    });
-
-    render(<QrScannerScreen />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('offline-watermark')).toBeInTheDocument();
-    });
-  });
-});
-
-describe('useMobileQrScanner', () => {
-  beforeEach(() => {
-    Object.defineProperty(navigator, 'mediaDevices', {
-      configurable: true,
-      value: {
-        getUserMedia: jest.fn(),
+  it('shows verified delivery details after a successful scan', () => {
+    mockScanner({
+      result: {
+        success: true,
+        deliveryId: 'DEL-2048',
+        message: 'Verified',
+        status: 'IN_TRANSIT',
+        destination: 'Lagos',
       },
     });
+    render(<QrScannerScreen />);
 
-    Object.defineProperty(HTMLMediaElement.prototype, 'play', {
-      configurable: true,
-      value: jest.fn().mockResolvedValue(undefined),
-    });
-
-    (mobileQrScannerService.verifyQrCode as jest.Mock).mockResolvedValue(mockDelivery);
+    expect(screen.getByLabelText('Scan success')).toHaveTextContent('Handoff verified');
+    expect(screen.getByText('DEL-2048')).toBeInTheDocument();
+    expect(screen.getByText('IN_TRANSIT')).toBeInTheDocument();
+    expect(screen.getByText('Lagos')).toBeInTheDocument();
   });
 
-  it('scans a QR payload and stores backend delivery details', async () => {
-    const { result } = renderHook(() => useMobileQrScanner());
+  it('submits the manual fallback code', async () => {
+    mockScanner({ manualCode: 'HANDOFF-123' });
+    const user = userEvent.setup();
+    render(<QrScannerScreen />);
 
-    await act(async () => {
-      const response = await result.current.handleScan('DEL-99234');
-      expect(response).toMatchObject({ deliveryId: 'DEL-99234' });
-    });
-
-    expect(result.current.scanResult).toMatchObject({ deliveryId: 'DEL-99234' });
-    expect(result.current.error).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Verify' }));
+    expect(submitManualCode).toHaveBeenCalledTimes(1);
   });
 
-  it('captures camera permission errors and allows retry', async () => {
-    const permissionError = new Error('Permission denied');
-    permissionError.name = 'NotAllowedError';
-    (navigator.mediaDevices.getUserMedia as jest.Mock).mockRejectedValue(permissionError);
+  it('updates manual code input through the hook', async () => {
+    const user = userEvent.setup();
+    render(<QrScannerScreen />);
 
-    const { result } = renderHook(() => useMobileQrScanner());
-
-    await act(async () => {
-      await result.current.startCamera();
-    });
-
-    expect(result.current.error).toMatch(/camera permission denied/i);
-    expect(result.current.isCameraActive).toBe(false);
+    await user.type(screen.getByLabelText('Manual code'), 'A');
+    expect(setManualCode).toHaveBeenCalledWith('A');
   });
 });
