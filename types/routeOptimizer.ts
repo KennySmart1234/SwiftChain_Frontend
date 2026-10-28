@@ -13,6 +13,20 @@ export interface OptimizerWaypoint {
   address?: string;
 }
 
+/**
+ * Result returned by useRouteOptimization and routeOptimizationService
+ * containing the ordered waypoints, total distance (km), duration (min),
+ * and route polyline coordinates for map rendering.
+ */
+export interface RouteOptimizationResult {
+  waypoints: OptimizerWaypoint[];
+  optimizedWaypoints: OptimizerWaypoint[];
+  distance: number;
+  duration: number;
+  polyline: [number, number][];
+  cached: boolean;
+}
+
 /** Exported shape written to the downloaded route JSON file. */
 export interface OptimizedRouteExport {
   waypoints: OptimizerWaypoint[];
