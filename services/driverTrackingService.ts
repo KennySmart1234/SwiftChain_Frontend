@@ -105,7 +105,6 @@ class DriverTrackingService {
       };
 
       this.socket.onerror = (event: Event) => {
-        // eslint-disable-next-line no-console
         console.error('[DriverTrackingService] WebSocket error:', event);
         this.notifySubscribers('error', 'WebSocket connection error');
       };
@@ -122,7 +121,6 @@ class DriverTrackingService {
         }
       };
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error('[DriverTrackingService] Failed to create WebSocket:', error);
       this.notifySubscribers('error', 'Failed to create WebSocket connection');
       this.scheduleReconnect();
@@ -134,7 +132,6 @@ class DriverTrackingService {
    */
   private scheduleReconnect(): void {
     if (this.reconnectCount >= this.reconnectConfig.maxRetries) {
-      // eslint-disable-next-line no-console
       console.error('[DriverTrackingService] Max reconnection attempts reached');
       this.notifySubscribers('error', 'Max reconnection attempts reached');
       return;
@@ -177,7 +174,6 @@ class DriverTrackingService {
         }
       }
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error('[DriverTrackingService] Failed to parse message:', error);
       this.notifySubscribers('error', 'Failed to parse incoming message');
     }
@@ -207,7 +203,6 @@ class DriverTrackingService {
       try {
         subscriber.onLocationUpdate(update);
       } catch (error) {
-        // eslint-disable-next-line no-console
         console.error('[DriverTrackingService] Subscriber error:', error);
       }
     }
@@ -237,7 +232,6 @@ class DriverTrackingService {
             break;
         }
       } catch (error) {
-        // eslint-disable-next-line no-console
         console.error('[DriverTrackingService] Subscriber callback error:', error);
       }
     }
