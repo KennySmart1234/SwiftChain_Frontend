@@ -38,6 +38,7 @@ interface SearchSnapshot {
 }
 
 const EMPTY_SNAPSHOT: SearchSnapshot = { query: '', results: [], error: null };
+const SEARCH_DEBOUNCE_MS = 300;
 
 /**
  * useGlobalSearch — runs the unified search and groups the results by category.
@@ -57,24 +58,28 @@ export function useGlobalSearch(): UseGlobalSearchResult {
     if (!trimmedQuery) return;
 
     const controller = new AbortController();
-
-    globalSearchService
-      .search(trimmedQuery, controller.signal)
-      .then((results) => {
-        if (controller.signal.aborted) return;
-        setSnapshot({ query: trimmedQuery, results, error: null });
-      })
-      .catch((searchError: unknown) => {
-        if (controller.signal.aborted) return;
-        setSnapshot({
-          query: trimmedQuery,
-          results: [],
-          error:
-            searchError instanceof Error ? searchError.message : 'Unable to complete the search',
+    const timeoutId = window.setTimeout(() => {
+      globalSearchService
+        .search(trimmedQuery, controller.signal)
+        .then((results) => {
+          if (controller.signal.aborted) return;
+          setSnapshot({ query: trimmedQuery, results, error: null });
+        })
+        .catch((searchError: unknown) => {
+          if (controller.signal.aborted) return;
+          setSnapshot({
+            query: trimmedQuery,
+            results: [],
+            error:
+              searchError instanceof Error ? searchError.message : 'Unable to complete the search',
+          });
         });
-      });
+    }, SEARCH_DEBOUNCE_MS);
 
-    return () => controller.abort();
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, [trimmedQuery]);
 
   // The snapshot only counts while it still describes the query on screen.

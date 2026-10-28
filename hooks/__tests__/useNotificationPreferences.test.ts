@@ -175,4 +175,28 @@ describe('useNotificationPreferences', () => {
 
     expect(result.current.error).toBeNull();
   });
+
+  it('resets local changes to the latest backend values', async () => {
+    const { result } = renderHook(() => useNotificationPreferences());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    act(() => result.current.togglePreference('delivery_created_in_app', false));
+    expect(result.current.preferences.deliveries[0].enabled).toBe(false);
+
+    act(() => result.current.resetPreferences());
+
+    expect(result.current.preferences.deliveries[0].enabled).toBe(true);
+  });
+
+  it('retries loading after an error', async () => {
+    mockedService.getPreferences
+      .mockRejectedValueOnce(new Error('Offline'))
+      .mockResolvedValueOnce({ success: true, data: mockPreferences });
+    const { result } = renderHook(() => useNotificationPreferences());
+    await waitFor(() => expect(result.current.error).toBe('Offline'));
+
+    await act(async () => result.current.retry());
+
+    expect(result.current.error).toBeNull();
+    expect(result.current.preferences.system).toHaveLength(1);
+  });
 });

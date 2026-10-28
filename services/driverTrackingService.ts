@@ -81,8 +81,8 @@ class DriverTrackingService {
    * Called automatically when the first subscriber is added.
    */
   connect(): void {
-    if (this.socket?.readyState === WebSocket.OPEN) {
-      return; // Already connected
+    if (this.socket) {
+      return;
     }
 
     this.isIntentionallyClosed = false;
@@ -105,7 +105,6 @@ class DriverTrackingService {
       };
 
       this.socket.onerror = (event: Event) => {
-        // eslint-disable-next-line no-console
         console.error('[DriverTrackingService] WebSocket error:', event);
         this.notifySubscribers('error', 'WebSocket connection error');
       };
@@ -113,6 +112,7 @@ class DriverTrackingService {
       this.socket.onclose = () => {
         // eslint-disable-next-line no-console
         console.log('[DriverTrackingService] Connection closed');
+        this.socket = null;
 
         if (!this.isIntentionallyClosed && this.subscribers.size > 0) {
           this.scheduleReconnect();
@@ -121,7 +121,6 @@ class DriverTrackingService {
         }
       };
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error('[DriverTrackingService] Failed to create WebSocket:', error);
       this.notifySubscribers('error', 'Failed to create WebSocket connection');
       this.scheduleReconnect();
@@ -133,7 +132,6 @@ class DriverTrackingService {
    */
   private scheduleReconnect(): void {
     if (this.reconnectCount >= this.reconnectConfig.maxRetries) {
-      // eslint-disable-next-line no-console
       console.error('[DriverTrackingService] Max reconnection attempts reached');
       this.notifySubscribers('error', 'Max reconnection attempts reached');
       return;
@@ -176,7 +174,6 @@ class DriverTrackingService {
         }
       }
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error('[DriverTrackingService] Failed to parse message:', error);
       this.notifySubscribers('error', 'Failed to parse incoming message');
     }
@@ -206,7 +203,6 @@ class DriverTrackingService {
       try {
         subscriber.onLocationUpdate(update);
       } catch (error) {
-        // eslint-disable-next-line no-console
         console.error('[DriverTrackingService] Subscriber error:', error);
       }
     }
@@ -236,7 +232,6 @@ class DriverTrackingService {
             break;
         }
       } catch (error) {
-        // eslint-disable-next-line no-console
         console.error('[DriverTrackingService] Subscriber callback error:', error);
       }
     }
@@ -264,6 +259,7 @@ class DriverTrackingService {
     }
 
     this.reconnectCount = 0;
+    this.subscribers.clear();
   }
 
   /**

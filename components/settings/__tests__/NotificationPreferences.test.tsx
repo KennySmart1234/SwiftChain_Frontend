@@ -12,12 +12,14 @@
  */
 
 import React from 'react';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 const mockTogglePreference = jest.fn();
 const mockSavePreferences = jest.fn();
 const mockClearError = jest.fn();
+const mockResetPreferences = jest.fn();
+const mockRetry = jest.fn();
 
 const mockHook = {
   preferences: {
@@ -71,6 +73,8 @@ const mockHook = {
   togglePreference: mockTogglePreference,
   savePreferences: mockSavePreferences,
   clearError: mockClearError,
+  resetPreferences: mockResetPreferences,
+  retry: mockRetry,
 };
 
 jest.mock('sonner', () => ({
@@ -240,7 +244,7 @@ describe('NotificationPreferences Component', () => {
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith('Backend unavailable');
       });
-      expect(mockClearError).toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
     });
   });
 });

@@ -20,11 +20,15 @@ export interface UseNotificationPreferencesResult {
   /** True while preferences are being persisted to the backend */
   isSaving: boolean;
   /** Update a single preference's enabled state locally */
-  togglePreference: (key: string, enabled: boolean) => void;
+  togglePreference: (_key: string, _enabled: boolean) => void;
   /** Persist all local preference changes to the backend */
   savePreferences: () => Promise<boolean>;
   /** Clear the error message */
   clearError: () => void;
+  /** Restore the preferences returned by the latest successful load */
+  resetPreferences: () => void;
+  /** Retry loading preferences after an error */
+  retry: () => Promise<void>;
 }
 
 const EMPTY_CATEGORIES: NotificationCategory[] = [
@@ -33,6 +37,18 @@ const EMPTY_CATEGORIES: NotificationCategory[] = [
   'marketing',
   'system',
 ];
+
+function emptyPreferences(): Record<
+  NotificationCategory,
+  NotificationPreference[]
+> {
+  return {
+    deliveries: [],
+    escrow: [],
+    marketing: [],
+    system: [],
+  };
+}
 
 /**
  * useNotificationPreferences — manages loading, toggling, and persisting
@@ -47,12 +63,10 @@ const EMPTY_CATEGORIES: NotificationCategory[] = [
 export function useNotificationPreferences(): UseNotificationPreferencesResult {
   const [preferences, setPreferences] = useState<
     Record<NotificationCategory, NotificationPreference[]>
-  >({
-    deliveries: [],
-    escrow: [],
-    marketing: [],
-    system: [],
-  });
+  >(emptyPreferences);
+  const [initialPreferences, setInitialPreferences] = useState<
+    Record<NotificationCategory, NotificationPreference[]>
+  >(emptyPreferences);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -86,6 +100,7 @@ export function useNotificationPreferences(): UseNotificationPreferencesResult {
       }
 
       setPreferences(grouped);
+      setInitialPreferences(grouped);
     } catch (err) {
       setError(
         err instanceof Error
@@ -144,6 +159,10 @@ export function useNotificationPreferences(): UseNotificationPreferencesResult {
   }, [preferences]);
 
   const clearError = useCallback(() => setError(null), []);
+  const resetPreferences = useCallback(() => {
+    setPreferences(initialPreferences);
+    setError(null);
+  }, [initialPreferences]);
 
   // Load preferences from the backend on mount
   useEffect(() => {
@@ -160,6 +179,8 @@ export function useNotificationPreferences(): UseNotificationPreferencesResult {
       togglePreference,
       savePreferences,
       clearError,
+      resetPreferences,
+      retry: loadPreferences,
     }),
     [
       preferences,
@@ -169,6 +190,8 @@ export function useNotificationPreferences(): UseNotificationPreferencesResult {
       togglePreference,
       savePreferences,
       clearError,
+      resetPreferences,
+      loadPreferences,
     ],
   );
 }

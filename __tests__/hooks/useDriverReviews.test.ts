@@ -3,14 +3,25 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createElement } from 'react';
 import { useDriverReviews, REVIEWS_PAGE_SIZE } from '@/hooks/useDriverReviews';
 import { driverReviewService } from '@/services/driverReviewService';
-import { DEFAULT_REVIEW_FILTERS } from '@/components/fleet/ReputationReviewGrid';
+import type { DriverReviewFilters } from '@/types/driverReview';
 import { buildReviewsPage, driverReviewFixtures } from '../fixtures/driverReviewFixtures';
 
+const DEFAULT_REVIEW_FILTERS: DriverReviewFilters = {
+  minRating: null,
+  dateRange: 'all',
+  verifiedOnly: false,
+  sort: 'date_desc',
+};
+
 jest.mock('@/services/driverReviewService', () => ({
-  driverReviewService: { getDriverReviews: jest.fn() },
+  driverReviewService: {
+    getDriverReviews: jest.fn(),
+    getDriverReputation: jest.fn(),
+  },
 }));
 
 const getReviews = driverReviewService.getDriverReviews as jest.Mock;
+const getReputation = driverReviewService.getDriverReputation as jest.Mock;
 
 const wrapper = ({ children }: { children: React.ReactNode }) =>
   createElement(
@@ -19,7 +30,17 @@ const wrapper = ({ children }: { children: React.ReactNode }) =>
     children,
   );
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  getReputation.mockResolvedValue({
+    driverId: 'driver-1',
+    score: 92,
+    totalReviews: 24,
+    verifiedReviews: 20,
+    updatedAt: '2026-10-18T00:00:00.000Z',
+    source: 'on_chain',
+  });
+});
 
 describe('useDriverReviews', () => {
   it('fetches the first page through the service with filters and page size', async () => {
@@ -33,6 +54,14 @@ describe('useDriverReviews', () => {
     );
     expect(result.current.reviews).toHaveLength(3);
     expect(result.current.hasNextPage).toBe(false);
+    expect(result.current.reputation?.score).toBe(92);
+    expect(result.current.pagination).toEqual({
+      loaded: 3,
+      total: 3,
+      currentPage: 1,
+      pageSize: REVIEWS_PAGE_SIZE,
+      hasMore: false,
+    });
   });
 
   it('appends the next page when fetchNextPage is called', async () => {
@@ -61,5 +90,21 @@ describe('useDriverReviews', () => {
   it('does not fetch without a driverId', () => {
     renderHook(() => useDriverReviews('', DEFAULT_REVIEW_FILTERS), { wrapper });
     expect(getReviews).not.toHaveBeenCalled();
+    expect(getReputation).not.toHaveBeenCalled();
+  });
+
+  it('fetches the on-chain reputation from its dedicated endpoint service', async () => {
+    getReviews.mockResolvedValueOnce(buildReviewsPage([], 1, false));
+    const { result } = renderHook(
+      () => useDriverReviews('driver-1', DEFAULT_REVIEW_FILTERS),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(getReputation).toHaveBeenCalledWith('driver-1', expect.anything());
+    expect(result.current.reputation).toEqual(
+      expect.objectContaining({ score: 92, source: 'on_chain' }),
+    );
   });
 });

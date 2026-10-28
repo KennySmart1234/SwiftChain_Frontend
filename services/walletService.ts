@@ -1,9 +1,21 @@
+import axios from 'axios';
 import api from '@/lib/api';
+import type { TransactionResponse } from '@/types/transaction';
+import type {
+  ConnectedWallet,
+  ConnectedWalletsResponse,
+  SetPrimaryWalletResponse,
+  ConnectWalletResponse,
+} from '@/types/wallet.types';
 import type {
   PendingMultiSigResponse,
   SignMultiSigParams,
   SignMultiSigResponse,
 } from '@/types/multiSig';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
+const STELLAR_TESTNET_EXPLORER = 'https://testnet.steexp.com/tx/';
+const STELLAR_PUBLIC_EXPLORER = 'https://steexp.com/tx/';
 
 export interface WalletBalance {
   available: number;
@@ -265,40 +277,48 @@ class WalletService {
   }
 
   /**
-   * Fetch pending multi-signature operations requiring the connected wallet's approval.
-   * The backend queries the blockchain for unsigned transactions pending this signer's approval.
+   * Connect a new wallet with address and provider to the backend API.
+   * Data Source: Retrieved from the backend API.
    */
-  async getPendingMultiSigOperations(
-    walletAddress: string
-  ): Promise<PendingMultiSigResponse> {
-    const { data } = await axios.get<PendingMultiSigResponse>(
-      `${API_BASE_URL}/api/wallet/multi-sig/pending`,
-      { params: { walletAddress } }
+  async connectWallet(
+    address: string,
+    walletType: string = 'freighter'
+  ): Promise<ConnectWalletResponse> {
+    const { data } = await axios.post<ConnectWalletResponse>(
+      `${API_BASE_URL}/api/wallet/connected`,
+      { address, provider: walletType, walletType }
     );
+
+    if (!data.success) {
+      throw new Error(data.message || 'Failed to connect wallet');
+    }
+
     return data;
   }
 
   /**
-   * Submit a signed transaction envelope for a multi-sig operation.
-   * The backend verifies the signature and broadcasts the transaction if all signatures are collected.
+   * Set a connected wallet as primary on the backend.
+   * Returns confirmation response.
    */
-  async signMultiSigOperation(
-    params: SignMultiSigParams
-  ): Promise<SignMultiSigResponse> {
-    const { data } = await axios.post<SignMultiSigResponse>(
-      `${API_BASE_URL}/api/wallet/multi-sig/sign`,
-      params
+  async setPrimaryWallet(walletId: string): Promise<SetPrimaryWalletResponse> {
+    const { data } = await axios.put<SetPrimaryWalletResponse>(
+      `${API_BASE_URL}/api/wallet/connected/${walletId}/primary`
     );
+
+    if (!data.success) {
+      throw new Error(data.message || 'Failed to set primary wallet');
+    }
+
     return data;
   }
 
   /**
    * Fetch every Web3 wallet linked to the authenticated account.
-   * The backend owns this list — it is never synthesized on the client.
+   * Data Source: Retrieved from /api/wallet/connected backend endpoint.
    */
   async getConnectedWallets(signal?: AbortSignal): Promise<ConnectedWallet[]> {
     const { data } = await axios.get<ConnectedWalletsResponse>(
-      `${API_BASE_URL}/api/wallet/wallets`,
+      `${API_BASE_URL}/api/wallet/connected`,
       { signal }
     );
 
@@ -311,10 +331,11 @@ class WalletService {
 
   /**
    * Unlink a single wallet from the authenticated account.
+   * Disconnect clears wallet from backend.
    */
   async disconnectWallet(walletId: string): Promise<DisconnectResponse> {
     const { data } = await axios.delete<DisconnectResponse>(
-      `${API_BASE_URL}/api/wallet/wallets/${walletId}`
+      `${API_BASE_URL}/api/wallet/connected/${walletId}`
     );
 
     if (!data.success) {

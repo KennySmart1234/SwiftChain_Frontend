@@ -124,4 +124,16 @@ export const kycService = {
       throw error;
     }
   },
+
+  /**
+   * Submit the uploaded onboarding documents for admin approval
+   * @param documentIds - IDs of the uploaded onboarding documents
+   * @returns Promise with submission response
+   */
+  async submitForApproval(documentIds: string[]): Promise<ApiResponse<null>> {
+    const { data } = await axios.post<ApiResponse<null>>(`${API_BASE_URL}/api/kyc/submit`, {
+      documentIds,
+    });
+    return data;
+  },
 };

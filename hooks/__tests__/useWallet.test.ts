@@ -16,14 +16,15 @@ jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
 }));
 
-jest.mock('@/services/walletService', () => ({
-  walletService: {
-    connect: jest.fn().mockResolvedValue(mockWalletConnectResponse),
-    disconnect: jest
-      .fn()
-      .mockResolvedValue(mockWalletDisconnectResponse),
-  },
-}));
+jest.mock('@/services/walletService', () => {
+  const fixtures = jest.requireActual('./fixtures/walletApiResponses');
+  return {
+    walletService: {
+      connect: jest.fn().mockResolvedValue(fixtures.mockWalletConnectResponse),
+      disconnect: jest.fn().mockResolvedValue(fixtures.mockWalletDisconnectResponse),
+    },
+  };
+});
 
 jest.mock('@/services/freighterService', () => ({
   freighterService: {
