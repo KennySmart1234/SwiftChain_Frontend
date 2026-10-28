@@ -51,3 +51,4 @@ extensions.json
 
 
 test_snapshots
+*.tsbuildinfo
