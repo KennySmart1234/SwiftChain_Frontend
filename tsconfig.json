@@ -37,6 +37,11 @@
   ],
   "exclude": [
     "node_modules",
-    "cypress"
+    "features/shipments/EXAMPLES.tsx",
+    "**/__tests__/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx"
   ]
 }

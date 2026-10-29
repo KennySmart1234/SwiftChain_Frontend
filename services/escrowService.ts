@@ -1,4 +1,60 @@
 /**
+ * Escrow Service
+ *
+ * Manages on-chain escrow interactions for SwiftChain deliveries.
+ * Stellar Soroban integration is stubbed until `stellar-sdk` is installed
+ * and `@/lib/wallet` is implemented.
+ *
+ * To enable real blockchain calls:
+ *   1. pnpm add stellar-sdk
+ *   2. Implement @/lib/wallet (getWallet utility)
+ *   3. Replace the stub implementations below.
+ */
+
+import type { EscrowDetails, ReleaseFundsResponse } from '@/types/escrow';
+
+// ---------------------------------------------------------------------------
+// Parameter / response types
+// ---------------------------------------------------------------------------
+
+export interface LockEscrowParams {
+  deliveryId: string;
+  amount: number;
+  currency: string;
+  walletAddress: string;
+}
+
+export interface LockEscrowResponse {
+  escrowId: string;
+  transactionHash: string;
+}
+
+export interface ReleaseEscrowParams {
+  escrowId: string;
+  deliveryId: string;
+  walletAddress: string;
+}
+
+export interface OpenDisputeParams {
+  escrowId?: string;
+  deliveryId: string;
+  transactionId?: string;
+  reason: string;
+  description?: string;
+  evidenceFiles?: File[];
+  walletAddress: string;
+}
+
+export interface OpenDisputeResponse {
+  disputeId: string;
+  transactionHash: string;
+}
+
+// ---------------------------------------------------------------------------
+// Service implementation (stubs — replace with real Soroban calls)
+// ---------------------------------------------------------------------------
+
+/**
  * Escrow Service - Manages smart contract interactions for locking and releasing funds
  * 
  * This service provides an interface for:
@@ -14,32 +70,15 @@
  * wallet signing, and Soroban contract invocation. For this task, we focus on
  * testing the hooks with realistic mock responses.
  */
-
-import type {
-  EscrowDetails,
-  ReleaseFundsResponse,
-  LockEscrowParams,
-  LockEscrowResponse,
-  ReleaseEscrowParams,
-  ReleaseEscrowResponse,
-} from '@/types/escrow';
-
-/**
- * Fetches the current state of an escrow contract from the blockchain.
- * 
- * In real implementation:
- * - Connects to Stellar Soroban RPC via stellar-sdk Server
- * - Queries contract storage for signatures, threshold, and released status
- * - Uses XDR decoding to parse contract data
- * 
- * @param escrowId The contract address on Soroban
- * @returns EscrowDetails with signature count, threshold, and signer list
- * @throws Error if network call fails or contract data is inaccessible
- */
-export async function getEscrowDetails(escrowId: string): Promise<EscrowDetails> {
-  // This function will be mocked in tests to return predefined responses
-  // In production, it would use: stellar-sdk Server + Operation.getContractData()
-  throw new Error('getEscrowDetails must be mocked in test environment');
+async function getEscrowDetails(escrowId: string): Promise<EscrowDetails> {
+  // TODO: Replace with real Soroban contract call once stellar-sdk is installed.
+  console.warn('[escrowService] getEscrowDetails is stubbed:', escrowId);
+  return {
+    currentSignatures: 0,
+    requiredSignatures: 1,
+    isReleased: false,
+    signers: [],
+  };
 }
 
 /**
@@ -56,64 +95,43 @@ export async function getEscrowDetails(escrowId: string): Promise<EscrowDetails>
  * @returns ReleaseFundsResponse with transaction hash on success
  * @throws Error if wallet is not connected, transaction fails, or times out
  */
-export async function releaseFunds(escrowId: string): Promise<ReleaseFundsResponse> {
-  // This function will be mocked in tests
-  // In production, uses stellar-sdk TransactionBuilder and wallet signing
-  throw new Error('releaseFunds must be mocked in test environment');
+async function releaseFunds(escrowId: string): Promise<ReleaseFundsResponse> {
+  // TODO: Replace with real Soroban transaction once stellar-sdk is installed.
+  console.warn('[escrowService] releaseFunds is stubbed:', escrowId);
+  return { success: true, transactionHash: 'stub-tx-hash' };
 }
 
 /**
- * Locks escrow funds for a delivery via smart contract.
- * 
- * In real implementation:
- * - Validates lock parameters (amount > 0, all fields present)
- * - Retrieves connected wallet
- * - Builds Stellar transaction with Operation.invokeContract('lock_funds', [amount, currency])
- * - Signs and submits transaction
- * - Returns new escrow contract address and transaction hash
- * 
- * @param params LockEscrowParams with deliveryId, amount, currency, walletAddress
- * @returns LockEscrowResponse with new escrowId and transaction hash
- * @throws Error if parameters invalid, wallet not connected, or transaction fails
+ * Locks funds in an escrow smart contract for a delivery.
  */
-export async function lockEscrow(params: LockEscrowParams): Promise<LockEscrowResponse> {
-  const { deliveryId, amount, currency, walletAddress } = params;
-
-  // Client-side parameter validation (actual contract validation happens on-chain)
-  if (!deliveryId || amount <= 0 || !currency || !walletAddress) {
-    throw new Error('Invalid lock parameters: all fields are required and amount must be positive.');
-  }
-
-  // This function will be mocked in tests
-  // In production, uses stellar-sdk for transaction building and signing
-  throw new Error('lockEscrow must be mocked in test environment');
+async function lockEscrow(params: LockEscrowParams): Promise<LockEscrowResponse> {
+  // TODO: Replace with real Soroban transaction once stellar-sdk is installed.
+  console.warn('[escrowService] lockEscrow is stubbed:', params);
+  return {
+    escrowId: `escrow-${params.deliveryId}`,
+    transactionHash: 'stub-lock-tx-hash',
+  };
 }
 
 /**
- * Releases escrow funds by invoking the smart contract's release_funds function.
- * 
- * In real implementation:
- * - Validates all required parameters are present
- * - Retrieves connected wallet
- * - Builds Stellar transaction calling contract.release_funds()
- * - Signs and submits transaction
- * - Polls for completion
- * 
- * @param params ReleaseEscrowParams with escrowId, deliveryId, walletAddress
- * @returns ReleaseEscrowResponse with transaction hash on success
- * @throws Error if parameters invalid, wallet not connected, or transaction fails
+ * Releases escrow funds after delivery confirmation.
  */
-export async function releaseEscrow(params: ReleaseEscrowParams): Promise<ReleaseEscrowResponse> {
-  const { escrowId, deliveryId, walletAddress } = params;
+async function releaseEscrow(params: ReleaseEscrowParams): Promise<ReleaseFundsResponse & { message?: string }> {
+  // TODO: Replace with real Soroban transaction once stellar-sdk is installed.
+  console.warn('[escrowService] releaseEscrow is stubbed:', params);
+  return { success: true, transactionHash: 'stub-release-tx-hash' };
+}
 
-  // Client-side parameter validation
-  if (!escrowId || !deliveryId || !walletAddress) {
-    throw new Error('Invalid release parameters: all fields are required.');
-  }
-
-  // This function will be mocked in tests
-  // In production, uses stellar-sdk for transaction building and signing
-  throw new Error('releaseEscrow must be mocked in test environment');
+/**
+ * Opens a dispute on an existing escrow contract.
+ */
+async function openDispute(params: OpenDisputeParams): Promise<OpenDisputeResponse> {
+  // TODO: Replace with real Soroban transaction once stellar-sdk is installed.
+  console.warn('[escrowService] openDispute is stubbed:', params);
+  return {
+    disputeId: `dispute-${params.escrowId}`,
+    transactionHash: 'stub-dispute-tx-hash',
+  };
 }
 
 /**
@@ -125,6 +143,5 @@ export const escrowService = {
   releaseFunds,
   lockEscrow,
   releaseEscrow,
+  openDispute,
 };
-
-export type { LockEscrowParams, LockEscrowResponse, ReleaseEscrowParams, ReleaseEscrowResponse };

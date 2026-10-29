@@ -40,5 +40,10 @@ export const deliveriesService = {
   createDelivery: async (payload: CreateDeliveryPayload): Promise<Delivery> => {
     const { data } = await apiClient.post<Delivery>('/deliveries', payload);
     return data;
-  }
+  },
+
+  getStatusTimeline: async (deliveryId: string): Promise<import('../types/delivery').StatusTimeline> => {
+    const { data } = await apiClient.get<import('../types/delivery').StatusTimeline>(`/deliveries/${deliveryId}/timeline`);
+    return data;
+  },
 };
