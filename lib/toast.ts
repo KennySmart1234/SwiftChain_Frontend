@@ -11,14 +11,17 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 /**
  * Toast variant types
  */
-export type ToastVariant = 'success' | 'error' | 'info' | 'loading';
+export type ToastVariant = 'success' | 'error' | 'info' | 'loading' | 'default' | 'destructive';
 
 /**
  * Toast configuration from backend
  */
 export interface ToastConfig {
-  variant: ToastVariant;
-  message: string;
+  /** Short title shown in bold (alias for message when message is omitted) */
+  title?: string;
+  variant?: ToastVariant;
+  /** Main message body */
+  message?: string;
   duration?: number;
   description?: string;
   action?: {

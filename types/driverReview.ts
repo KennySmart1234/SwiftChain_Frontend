@@ -29,3 +29,20 @@ export interface DriverReviewsPage {
   hasMore: boolean;
   total: number;
 }
+
+export interface DriverReputationScore {
+  driverId: string;
+  score: number;
+  totalReviews: number;
+  verifiedReviews: number;
+  updatedAt: string;
+  source: 'on_chain';
+}
+
+export interface DriverReviewsPagination {
+  loaded: number;
+  total: number;
+  currentPage: number;
+  pageSize: number;
+  hasMore: boolean;
+}

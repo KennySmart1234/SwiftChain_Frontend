@@ -342,3 +342,118 @@ describe('FleetMapClient', () => {
     });
   });
 });
+
+describe('FleetMapClient waypoint drag-and-drop reordering (Issue #832)', () => {
+  const routeWaypoints = [
+    {
+      id: 'wp-1',
+      coordinate: { latitude: 6.5244, longitude: 3.3792 },
+      label: 'Apapa Port',
+    },
+    {
+      id: 'wp-2',
+      coordinate: { latitude: 6.6018, longitude: 3.3515 },
+      label: 'Ikeja Hub',
+    },
+    {
+      id: 'wp-3',
+      coordinate: { latitude: 6.4281, longitude: 3.4219 },
+      label: 'Victoria Island',
+    },
+  ];
+
+  it('displays connection lines between waypoints and shows dashed drop zone preview while dragging', () => {
+    const { fireEvent } = require('@testing-library/react');
+    render(
+      <FleetMapClient drivers={[LAGOS_A]} waypoints={routeWaypoints} />,
+    );
+
+    const connectionLine = screen.getByTestId('waypoint-connection-line');
+    expect(connectionLine).toBeInTheDocument();
+    expect(connectionLine).toHaveAttribute(
+      'data-waypoint-order',
+      'wp-1,wp-2,wp-3',
+    );
+
+    const waypointMarkers = screen.getAllByTestId('waypoint-marker');
+    expect(waypointMarkers).toHaveLength(3);
+
+    // Start dragging the first marker
+    fireEvent.dragStart(waypointMarkers[0]);
+
+    // Dashed drop preview appears
+    const preview = screen.getByTestId('dashed-drop-preview');
+    expect(preview).toBeInTheDocument();
+    expect(preview).toHaveClass('border-dashed');
+
+    // Drop zones highlight valid positions (positions 1 and 2 are valid drop targets for marker 0)
+    const dropZones = screen.getAllByTestId('waypoint-drop-zone');
+    expect(dropZones[0]).toHaveAttribute('data-valid-drop', 'false');
+    expect(dropZones[1]).toHaveAttribute('data-valid-drop', 'true');
+    expect(dropZones[2]).toHaveAttribute('data-valid-drop', 'true');
+  });
+
+  it('highlights the hovered drop zone and updates connection lines in real-time during drag', () => {
+    const { fireEvent } = require('@testing-library/react');
+    render(
+      <FleetMapClient drivers={[LAGOS_A]} waypoints={routeWaypoints} />,
+    );
+
+    const waypointMarkers = screen.getAllByTestId('waypoint-marker');
+    const dropZones = screen.getAllByTestId('waypoint-drop-zone');
+
+    fireEvent.dragStart(waypointMarkers[0]);
+    fireEvent.dragOver(dropZones[2]);
+
+    // Drop zone 2 is highlighted
+    expect(dropZones[2]).toHaveAttribute('data-highlighted', 'true');
+
+    // Connection line updates in real-time to reflect the preview order (wp-2, wp-3, wp-1)
+    const connectionLine = screen.getByTestId('waypoint-connection-line');
+    expect(connectionLine).toHaveAttribute(
+      'data-waypoint-order',
+      'wp-2,wp-3,wp-1',
+    );
+    expect(connectionLine).toHaveAttribute(
+      'data-positions',
+      '6.6018,3.3515;6.4281,3.4219;6.5244,3.3792',
+    );
+  });
+
+  it('snaps marker smoothly to valid drop position and updates route visualization after reorder', () => {
+    const { fireEvent } = require('@testing-library/react');
+    const onWaypointReorder = jest.fn();
+
+    render(
+      <FleetMapClient
+        drivers={[LAGOS_A]}
+        waypoints={routeWaypoints}
+        onWaypointReorder={onWaypointReorder}
+      />,
+    );
+
+    const waypointMarkers = screen.getAllByTestId('waypoint-marker');
+    const dropZones = screen.getAllByTestId('waypoint-drop-zone');
+
+    fireEvent.dragStart(waypointMarkers[0]);
+    fireEvent.dragOver(dropZones[2]);
+    fireEvent.drop(dropZones[2]);
+
+    // Dashed preview disappears after drop
+    expect(screen.queryByTestId('dashed-drop-preview')).not.toBeInTheDocument();
+
+    // Callback received reordered array and route optimization result
+    expect(onWaypointReorder).toHaveBeenCalledTimes(1);
+    const [reordered] = onWaypointReorder.mock.calls[0];
+    expect(reordered.map((w: { id: string }) => w.id)).toEqual([
+      'wp-2',
+      'wp-3',
+      'wp-1',
+    ]);
+
+    // Updated markers and snapped state
+    const updatedMarkers = screen.getAllByTestId('waypoint-marker');
+    expect(updatedMarkers[2]).toHaveAttribute('data-waypoint-id', 'wp-1');
+    expect(updatedMarkers[2]).toHaveAttribute('data-snapped', 'true');
+  });
+});

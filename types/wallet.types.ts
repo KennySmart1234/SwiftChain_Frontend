@@ -50,3 +50,16 @@ export interface ConnectedWalletsResponse {
   message?: string;
   data: ConnectedWallet[];
 }
+
+export interface SetPrimaryWalletResponse {
+  success: boolean;
+  message: string;
+  data?: ConnectedWallet;
+}
+
+export interface ConnectWalletResponse {
+  success: boolean;
+  message: string;
+  data?: ConnectedWallet;
+  wallet?: ConnectedWallet;
+}

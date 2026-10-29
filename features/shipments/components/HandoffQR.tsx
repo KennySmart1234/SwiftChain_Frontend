@@ -8,6 +8,8 @@ import {
 } from '../../../hooks/useHandoffQR';
 import { HandoffQRData } from '../../../types/shipment';
 import clsx from 'clsx';
+import { CloudOff, RefreshCw, ScanLine } from 'lucide-react';
+import { useOfflineHandoffSync } from '@/hooks/useOfflineHandoffSync';
 
 interface HandoffQRProps {
   deliveryId: string;
@@ -16,8 +18,10 @@ interface HandoffQRProps {
   size?: number;
   includeLabel?: boolean;
   autoGenerate?: boolean;
-  onQRGenerated?: (qrData: HandoffQRData) => void;
-  onError?: (error: Error) => void;
+  onQRGenerated?: (_qrData: HandoffQRData) => void;
+  onError?: (_error: Error) => void;
+  scannerMode?: boolean;
+  onScanProcessed?: (_state: 'synced' | 'pending' | 'failed') => void;
 }
 
 /**
@@ -43,19 +47,27 @@ export function HandoffQR({
   autoGenerate = false,
   onQRGenerated,
   onError,
+  scannerMode = false,
+  onScanProcessed,
 }: HandoffQRProps) {
   const [hasTriedGenerate, setHasTriedGenerate] = useState(false);
-  const qrQuery = useHandoffQR(deliveryId, !autoGenerate || hasTriedGenerate);
+  const [scanToken, setScanToken] = useState('');
+  const qrQuery = useHandoffQR(
+    deliveryId,
+    !scannerMode && (!autoGenerate || hasTriedGenerate),
+  );
   const generateMutation = useGenerateHandoffQR();
+  const { isOnline, syncState, pendingCount, processScan, retry } =
+    useOfflineHandoffSync(scannerMode);
 
   // Auto-generate QR on first load if requested
   useEffect(() => {
-    if (autoGenerate && !hasTriedGenerate && deliveryId && driverId) {
+    if (!scannerMode && autoGenerate && !hasTriedGenerate && deliveryId && driverId) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setHasTriedGenerate(true);
       generateMutation.mutate(deliveryId);
     }
-  }, [autoGenerate, hasTriedGenerate, deliveryId, driverId, generateMutation]);
+  }, [scannerMode, autoGenerate, hasTriedGenerate, deliveryId, driverId, generateMutation]);
 
   // Call onQRGenerated callback when QR data is loaded
   useEffect(() => {
@@ -89,6 +101,63 @@ export function HandoffQR({
     }
     return `${seconds}s`;
   };
+
+  if (scannerMode) {
+    const statusLabel = {
+      synced: 'All handoffs synced',
+      pending: `${pendingCount} handoff${pendingCount === 1 ? '' : 's'} pending sync`,
+      failed: 'Sync failed. A retry is scheduled.',
+    }[syncState];
+
+    return (
+      <div className={clsx('relative space-y-4 rounded-lg border border-gray-200 bg-white p-4', className)}>
+        {!isOnline && (
+          <div className="absolute inset-x-0 top-0 flex items-center justify-center gap-2 bg-gray-900/85 px-3 py-2 text-sm font-semibold text-white" data-testid="offline-watermark">
+            <CloudOff className="h-4 w-4" /> Offline mode
+          </div>
+        )}
+        <div className={clsx({ 'pt-10': !isOnline })}>
+          <label className="text-sm font-medium text-gray-800" htmlFor="handoff-scan-token">
+            Scanned handoff token
+          </label>
+          <input
+            id="handoff-scan-token"
+            value={scanToken}
+            onChange={(event) => setScanToken(event.target.value)}
+            className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+            placeholder="Scan or enter token"
+          />
+        </div>
+        <button
+          type="button"
+          disabled={!scanToken.trim()}
+          onClick={async () => {
+            const state = await processScan(deliveryId, scanToken.trim());
+            setScanToken('');
+            onScanProcessed?.(state);
+          }}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:bg-gray-300"
+        >
+          <ScanLine className="h-4 w-4" /> Confirm handoff scan
+        </button>
+        <div
+          role="status"
+          className={clsx('flex items-center justify-between rounded-md px-3 py-2 text-sm', {
+            'bg-green-50 text-green-700': syncState === 'synced',
+            'bg-amber-50 text-amber-800': syncState === 'pending',
+            'bg-red-50 text-red-700': syncState === 'failed',
+          })}
+        >
+          <span>{statusLabel}</span>
+          {syncState !== 'synced' && isOnline && (
+            <button type="button" aria-label="Retry handoff sync" onClick={() => void retry()}>
+              <RefreshCw className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // Render loading state
   if (qrQuery.isLoading || generateMutation.isPending) {

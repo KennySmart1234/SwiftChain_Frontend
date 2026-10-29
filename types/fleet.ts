@@ -1,5 +1,81 @@
 export type DriverStatus = 'active' | 'idle' | 'offline' | 'on_delivery';
 
+/* eslint-disable no-unused-vars -- enum members are the public runtime values */
+export enum VehicleType {
+  CAR = 'CAR',
+  BIKE = 'BIKE',
+  VAN = 'VAN',
+  TRUCK = 'TRUCK',
+}
+/* eslint-enable no-unused-vars */
+
+export type RegistrationDocumentType =
+  | 'registration'
+  | 'insurance'
+  | 'inspection'
+  | 'ownership'
+  | 'other';
+
+export interface RegistrationDocument {
+  id: string;
+  vehicleId: string;
+  type: RegistrationDocumentType;
+  fileName: string;
+  mimeType: string;
+  size: number;
+  url: string;
+  uploadedAt: string;
+}
+
+export interface VehicleRegistration {
+  type: VehicleType;
+  make: string;
+  model: string;
+  year: number;
+  registrationNumber: string;
+  licensePlate: string;
+  capacity: number;
+  capacityUnit: 'kg' | 'tonnes' | 'passengers';
+  color?: string;
+  vin?: string;
+}
+
+export type VehicleRegistrationParams = VehicleRegistration;
+
+export interface VehicleDetails extends VehicleRegistration {
+  id: string;
+  status: 'pending' | 'active' | 'rejected' | 'inactive';
+  documents: RegistrationDocument[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface VehicleRegistrationApiResponse {
+  success: boolean;
+  message: string;
+  vehicle: VehicleDetails;
+}
+
+export type VehicleRegistrationResponse = VehicleRegistrationApiResponse;
+
+export interface UpdateResponse {
+  success: boolean;
+  message: string;
+  vehicle: VehicleDetails;
+}
+
+export interface DeleteResponse {
+  success: boolean;
+  message: string;
+  vehicleId: string;
+}
+
+export interface UploadResponse {
+  success: boolean;
+  message: string;
+  document: RegistrationDocument;
+}
+
 export interface DriverLocation {
   lat: number;
   lng: number;
@@ -73,4 +149,29 @@ export interface AssignmentResult {
   shipmentId: string;
   success: boolean;
   error?: string;
+}
+
+export type VehicleType = 'van' | 'truck' | 'refrigerated' | 'motorcycle';
+
+export interface VehicleRegistrationInput {
+  plateNumber: string;
+  make: string;
+  model: string;
+  year: string;
+  type: VehicleType | '';
+  capacityKg: string;
+  temperatureMin: string;
+  cargoBoxSize: string;
+  registrationDocument: File | null;
+  vehiclePhoto: File | null;
+}
+
+export interface RegisteredVehicle {
+  id: string;
+  plateNumber: string;
+  make: string;
+  model: string;
+  year: number;
+  type: VehicleType;
+  capacityKg: number;
 }

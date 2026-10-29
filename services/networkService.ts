@@ -33,4 +33,26 @@ export const networkService = {
       return false;
     }
   },
+
+  /**
+   * Fetches the network information for a connected wallet address from the backend.
+   * Used by useNetworkCheck to verify the wallet is on the expected Stellar network.
+   */
+  getWalletNetwork: async (
+    address: string
+  ): Promise<{
+    success: boolean;
+    message?: string;
+    data?: { network: string; chainId?: number | null };
+  }> => {
+    try {
+      const response = await fetch(
+        `/api/wallet/network?address=${encodeURIComponent(address)}`
+      );
+      const data = await response.json();
+      return { success: response.ok, data: data.data, message: data.message };
+    } catch {
+      return { success: false, message: 'Failed to check wallet network' };
+    }
+  },
 };

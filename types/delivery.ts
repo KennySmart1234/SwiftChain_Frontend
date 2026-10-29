@@ -31,6 +31,8 @@ export interface Delivery {
   completedAt?: string;
 }
 
+export type DeliveryStatus = 'PENDING' | 'ACCEPTED' | 'IN_TRANSIT' | 'DELIVERED' | 'CANCELLED';
+
 export interface StatusEvent {
   id: string;
   deliveryId: string;

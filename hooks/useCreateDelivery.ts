@@ -82,7 +82,7 @@ export function useCreateDelivery(): UseCreateDeliveryReturn {
 
   return {
     form,
-    isSubmitting: createDelivery.isLoading,
+    isSubmitting: createDelivery.isPending,
     isSuccess: createDelivery.isSuccess,
     onSubmit,
   };
