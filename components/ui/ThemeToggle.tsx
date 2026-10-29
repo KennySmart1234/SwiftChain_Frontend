@@ -1,11 +1,12 @@
 'use client';
 
 import { Moon, Sun } from 'lucide-react';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 
 export function ThemeToggle() {
-  const { resolvedTheme, toggleTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
+  const toggleTheme = () => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
 
   // Avoid hydration mismatch by only rendering theme-dependent UI after
   // the component has mounted on the client. Initial server and first
@@ -24,7 +25,7 @@ export function ThemeToggle() {
   return (
     <button
       type="button"
-      onClick={() => void toggleTheme()}
+      onClick={toggleTheme}
       aria-label={
         mounted
           ? isDark

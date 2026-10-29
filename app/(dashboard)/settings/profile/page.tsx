@@ -10,9 +10,12 @@ import {
   Camera, 
   Loader2, 
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Wallet
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useWalletManagement } from '@/hooks/useWalletManagement';
+import { ConnectedWallets } from '@/components/wallet/ConnectedWallets';
 
 interface ProfileFormValues {
   name: string;
@@ -27,7 +30,8 @@ interface PasswordFormValues {
 
 export default function ProfileSettingsPage() {
   const { profile, isLoading, updateProfile, changePassword } = useUser();
-  const [activeTab, setActiveTab] = useState<'profile' | 'security'>('profile');
+  const walletManagement = useWalletManagement();
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'wallet'>('profile');
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -118,11 +122,23 @@ export default function ProfileSettingsPage() {
             <Lock className="w-5 h-5" />
             <span className="font-medium">Security</span>
           </button>
+          <button
+            onClick={() => setActiveTab('wallet')}
+            className={cn(
+              "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-left",
+              activeTab === 'wallet' 
+                ? "bg-blue-50 text-blue-700 shadow-sm border border-blue-100" 
+                : "text-gray-600 hover:bg-gray-50"
+            )}
+          >
+            <Wallet className="w-5 h-5" />
+            <span className="font-medium">Wallet Management</span>
+          </button>
         </aside>
 
         {/* Main Content */}
         <main className="flex-1">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 min-h-[420px]">
             {activeTab === 'profile' ? (
               <section className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <div className="flex flex-col items-center sm:flex-row gap-6">
@@ -235,7 +251,7 @@ export default function ProfileSettingsPage() {
                   </div>
                 </form>
               </section>
-            ) : (
+            ) : activeTab === 'security' ? (
               <section className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <div>
                   <h3 className="text-xl font-semibold text-gray-900">Change Password</h3>
@@ -315,6 +331,23 @@ export default function ProfileSettingsPage() {
                     </button>
                   </div>
                 </form>
+              </section>
+            ) : (
+              <section className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <ConnectedWallets
+                  wallets={walletManagement.wallets}
+                  activeAddress={walletManagement.activeAddress}
+                  isLoading={walletManagement.isLoading}
+                  isDisconnecting={walletManagement.isDisconnecting}
+                  isSettingPrimary={walletManagement.isSettingPrimary}
+                  isConnecting={walletManagement.isConnecting}
+                  error={walletManagement.error}
+                  onRefresh={walletManagement.refetch}
+                  onSetActive={walletManagement.setActiveWallet}
+                  onSetPrimary={(wallet) => walletManagement.setPrimaryWallet(wallet.id)}
+                  onConnect={() => walletManagement.connectWallet('freighter')}
+                  onDisconnect={walletManagement.disconnectWallet}
+                />
               </section>
             )}
           </div>

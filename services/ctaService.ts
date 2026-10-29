@@ -3,10 +3,6 @@ import type { CtaRegistrationPayload, CtaRegistrationResponse } from '@/types/ct
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 
-/**
- * ctaService — handles the landing page "Ready to Chain" email registration
- * API communication. Hooks call this; components never call this directly.
- */
 export const ctaService = {
   async registerEmail(
     payload: CtaRegistrationPayload,

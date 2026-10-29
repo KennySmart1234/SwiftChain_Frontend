@@ -1,0 +1,12 @@
+LIGHT MODE DESIGN ISSUES
+
+//Design Light Mode Titles
+— Preferences & Security Settings: Design notification preferences, security controls, and connected Web3 wallet settings.
+— Cross-Border Customs Documentation Manager: Create an interface for uploading, reviewing, and managing customs clearance documents linked to international orders.
+— User Profile Account Management: Design personal information management and connected wallet details.
+— Performance Metrics Dashboard: Present driver efficiency and revenue insights through clear charts and data visualizations.
+
+
+//Design Light Mode reference
+https://www.figma.com/design/2kP82C0Z8z0X3CncLQmfhB/Stellar-Project-Fig?node-id=3104-2&p=f&t=8viSao94cjKWsGb3-0
+

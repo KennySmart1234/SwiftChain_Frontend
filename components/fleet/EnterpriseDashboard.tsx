@@ -1,6 +1,7 @@
 'use client';
 
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { DriverReputation } from './DriverReputation';
 import { useFleet } from '@/hooks/useFleet';
@@ -251,6 +252,48 @@ function SummaryBarSkeleton() {
   );
 }
 
+
+
+type DateRange = '7d' | '30d' | '90d' | 'custom';
+
+function ChartExport({ chartRef, filename }: { chartRef: React.RefObject<HTMLDivElement | null>; filename: string }) {
+  const exportPng = async () => {
+    const svg = chartRef.current?.querySelector('svg');
+    if (!svg) return;
+    const xml = new XMLSerializer().serializeToString(svg);
+    const image = new Image();
+    image.onload = () => {
+      const canvas = document.createElement('canvas'); canvas.width = svg.clientWidth || 640; canvas.height = svg.clientHeight || 320;
+      const context = canvas.getContext('2d'); if (!context) return;
+      context.fillStyle = '#fff'; context.fillRect(0, 0, canvas.width, canvas.height); context.drawImage(image, 0, 0);
+      const link = document.createElement('a'); link.download = `${filename}.png`; link.href = canvas.toDataURL('image/png'); link.click();
+    };
+    image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(xml)}`;
+  };
+  return <button type="button" onClick={() => void exportPng()} className="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">Export PNG</button>;
+}
+
+function FleetAnalytics({ summary }: { summary: NonNullable<ReturnType<typeof useFleet>['summary']> }) {
+  const [range, setRange] = useState<DateRange>('30d');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
+  const [visible, setVisible] = useState(false);
+  const chartRef = useRef<HTMLDivElement>(null);
+  const lastUpdated = new Date().toLocaleString();
+  useEffect(() => {
+    const node = chartRef.current;
+    if (!node || typeof IntersectionObserver === 'undefined') { setVisible(true); return; }
+    const observer = new IntersectionObserver(([entry]) => { if (entry.isIntersecting) { setVisible(true); observer.disconnect(); } });
+    observer.observe(node); return () => observer.disconnect();
+  }, []);
+  const data = [{ name: 'Active', value: summary.activeDrivers }, { name: 'On delivery', value: summary.onDelivery }, { name: 'Idle', value: summary.idle }, { name: 'Offline', value: summary.offline }];
+  return <section aria-label="Fleet analytics" className="space-y-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-base font-semibold text-gray-900">Fleet analytics</h2><p className="text-xs text-gray-500">Data refreshed {lastUpdated}</p></div><div className="flex flex-wrap items-center gap-2" role="group" aria-label="Date range"><select aria-label="Date range" value={range} onChange={(e) => setRange(e.target.value as DateRange)} className="rounded-md border border-gray-200 px-3 py-1.5 text-sm"><option value="7d">Last 7 days</option><option value="30d">Last 30 days</option><option value="90d">Last 90 days</option><option value="custom">Custom range</option></select>{range === 'custom' && <><input aria-label="Start date" type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} className="rounded-md border border-gray-200 px-2 py-1.5 text-sm" /><input aria-label="End date" type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} className="rounded-md border border-gray-200 px-2 py-1.5 text-sm" /></>}</div></div>
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{[['Total drivers', summary.totalDrivers], ['Active rate', `${summary.totalDrivers ? Math.round(summary.activeDrivers / summary.totalDrivers * 100) : 0}%`], ['Deliveries', summary.onDelivery], ['Available', summary.idle]].map(([label, value]) => <div key={String(label)} className="rounded-lg bg-gray-50 p-3"><p className="text-xs text-gray-500">{label}</p><p className="mt-1 text-xl font-bold text-gray-900">{value}</p></div>)}</div>
+    <div ref={chartRef} className="h-64" aria-label="Fleet status chart">{visible && <ResponsiveContainer width="100%" height="100%"><BarChart data={data}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" /><YAxis allowDecimals={false} /><Tooltip /><Bar dataKey="value" fill="#2563eb" name="Drivers" /></BarChart></ResponsiveContainer>}</div><div className="flex justify-end"><ChartExport chartRef={chartRef} filename={`fleet-analytics-${range}`} /></div>
+  </section>;
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 /**
@@ -298,6 +341,8 @@ export function EnterpriseDashboard() {
           {isLoading ? 'Refreshing…' : 'Refresh'}
         </button>
       </div>
+
+      {summary && !isLoading && <FleetAnalytics summary={summary} />}
 
       {/* Summary bar — sourced from backend API via useFleet → fleetService */}
       {isLoading ? (

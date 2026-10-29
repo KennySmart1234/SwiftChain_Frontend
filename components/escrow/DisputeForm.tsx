@@ -3,6 +3,7 @@
 import { useState, useRef, type ReactElement, type ChangeEvent } from 'react';
 import { AlertCircle, Upload, X, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ModalFocusTrap } from '@/components/shared/ModalFocusTrap';
 import {
   useDisputeForm,
   DisputeFormData,
@@ -44,37 +45,47 @@ const DISPUTE_REASONS = [
  * Confirmation Dialog Component - warns about funds being frozen
  */
 function ConfirmationDialog({
+  isOpen,
   reason,
   description,
   onConfirm,
   onCancel,
   isSubmitting,
 }: {
+  isOpen: boolean;
   reason: string;
   description: string;
   onConfirm: () => void;
   onCancel: () => void;
   isSubmitting: boolean;
 }): ReactElement {
-  const overlayRef = useRef<HTMLDivElement>(null);
-
-  const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === overlayRef.current && !isSubmitting) onCancel();
-  };
+  const modalRef = useRef<HTMLDivElement>(null);
 
   const reasonLabel =
     DISPUTE_REASONS.find((r) => r.value === reason)?.label || reason;
 
   return (
-    <div
-      ref={overlayRef}
-      onClick={handleOverlayClick}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="confirmation-modal-title"
-    >
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+    <>
+      {/* Backdrop overlay */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isSubmitting) onCancel();
+          }}
+        />
+      )}
+
+      {/* Modal with focus trap */}
+      <ModalFocusTrap
+        ref={modalRef}
+        id="dispute-confirmation-modal"
+        isOpen={isOpen}
+        onClose={onCancel}
+        ariaLabelledBy="confirmation-modal-title"
+        className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      >
+        <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-100 mx-auto mb-4">
           <AlertCircle className="h-8 w-8 text-amber-600" />
         </div>
@@ -142,8 +153,9 @@ function ConfirmationDialog({
             )}
           </button>
         </div>
-      </div>
-    </div>
+        </div>
+      </ModalFocusTrap>
+    </>
   );
 }
 
@@ -527,6 +539,7 @@ export default function DisputeForm({
   if (currentStep === 'confirmation') {
     return (
       <ConfirmationDialog
+        isOpen={currentStep === 'confirmation'}
         reason={selectedReason}
         description={description}
         onConfirm={handleConfirmDispute}

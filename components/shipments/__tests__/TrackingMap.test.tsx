@@ -7,6 +7,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { useTrackingRoute } from '@/hooks/useTrackingRoute';
+import type { RouteData } from '@/types/tracking';
 
 // Mock the hook
 jest.mock('@/hooks/useTrackingRoute');
@@ -26,7 +27,7 @@ jest.mock('next/dynamic', () => ({
 // Provide a lightweight stub of the TrackingMap component to avoid importing
 // react-leaflet in the test environment. The tests validate integration
 // behavior so the stub mirrors expected outputs from the real component.
-const TrackingMap = ({ deliveryId, onMapError, className, height, showControls }: any) => {
+const TrackingMap = ({ deliveryId, onMapError, className, height, _showControls }: any) => {
   const { routeData, currentLocation, isLoading, isError, error } = useTrackingRoute(deliveryId);
 
   if (isLoading) {
@@ -127,7 +128,7 @@ describe('TrackingMap Component Integration', () => {
     it('should fetch data when delivery ID is provided', () => {
       mockUseTrackingRoute.mockReturnValueOnce({
         routeData: mockRouteData,
-        currentLocation: mockRouteData.currentLocation,
+        currentLocation: mockRouteData.currentLocation ?? null,
         isLoading: false,
         isError: false,
         error: null,
@@ -212,7 +213,7 @@ describe('TrackingMap Component Integration', () => {
     it('should return route data with all properties', () => {
       mockUseTrackingRoute.mockReturnValueOnce({
         routeData: mockRouteData,
-        currentLocation: mockRouteData.currentLocation,
+        currentLocation: mockRouteData.currentLocation ?? null,
         isLoading: false,
         isError: false,
         error: null,
@@ -231,7 +232,7 @@ describe('TrackingMap Component Integration', () => {
     it('should include distance and time estimates', () => {
       mockUseTrackingRoute.mockReturnValueOnce({
         routeData: mockRouteData,
-        currentLocation: mockRouteData.currentLocation,
+        currentLocation: mockRouteData.currentLocation ?? null,
         isLoading: false,
         isError: false,
         error: null,
@@ -301,7 +302,7 @@ describe('TrackingMap Component Integration', () => {
       const refetchMock = jest.fn().mockResolvedValue(undefined);
       mockUseTrackingRoute.mockReturnValueOnce({
         routeData: mockRouteData,
-        currentLocation: mockRouteData.currentLocation,
+        currentLocation: mockRouteData.currentLocation ?? null,
         isLoading: false,
         isError: false,
         error: null,
@@ -362,7 +363,7 @@ describe('TrackingMap Component Integration', () => {
     it('should handle in_transit status', () => {
       mockUseTrackingRoute.mockReturnValueOnce({
         routeData: mockRouteData,
-        currentLocation: mockRouteData.currentLocation,
+        currentLocation: mockRouteData.currentLocation ?? null,
         isLoading: false,
         isError: false,
         error: null,
@@ -395,7 +396,7 @@ describe('TrackingMap Component Integration', () => {
     it('should have valid origin coordinates', () => {
       mockUseTrackingRoute.mockReturnValueOnce({
         routeData: mockRouteData,
-        currentLocation: mockRouteData.currentLocation,
+        currentLocation: mockRouteData.currentLocation ?? null,
         isLoading: false,
         isError: false,
         error: null,
@@ -411,7 +412,7 @@ describe('TrackingMap Component Integration', () => {
     it('should have valid destination coordinates', () => {
       mockUseTrackingRoute.mockReturnValueOnce({
         routeData: mockRouteData,
-        currentLocation: mockRouteData.currentLocation,
+        currentLocation: mockRouteData.currentLocation ?? null,
         isLoading: false,
         isError: false,
         error: null,
@@ -581,7 +582,7 @@ describe('TrackingMap Component', () => {
     beforeEach(() => {
       mockUseTrackingRoute.mockReturnValueOnce({
         routeData: mockRouteData,
-        currentLocation: mockRouteData.currentLocation,
+        currentLocation: mockRouteData.currentLocation ?? null,
         isLoading: false,
         isError: false,
         error: null,
@@ -654,7 +655,7 @@ describe('TrackingMap Component', () => {
     it('should display origin coordinates in popup', () => {
       mockUseTrackingRoute.mockReturnValueOnce({
         routeData: mockRouteData,
-        currentLocation: mockRouteData.currentLocation,
+        currentLocation: mockRouteData.currentLocation ?? null,
         isLoading: false,
         isError: false,
         error: null,
@@ -669,7 +670,7 @@ describe('TrackingMap Component', () => {
     it('should display destination coordinates in popup', () => {
       mockUseTrackingRoute.mockReturnValueOnce({
         routeData: mockRouteData,
-        currentLocation: mockRouteData.currentLocation,
+        currentLocation: mockRouteData.currentLocation ?? null,
         isLoading: false,
         isError: false,
         error: null,
@@ -738,7 +739,7 @@ describe('TrackingMap Component', () => {
     it('should apply custom className', () => {
       mockUseTrackingRoute.mockReturnValueOnce({
         routeData: mockRouteData,
-        currentLocation: mockRouteData.currentLocation,
+        currentLocation: mockRouteData.currentLocation ?? null,
         isLoading: false,
         isError: false,
         error: null,
@@ -755,7 +756,7 @@ describe('TrackingMap Component', () => {
     it('should apply custom height', () => {
       mockUseTrackingRoute.mockReturnValueOnce({
         routeData: mockRouteData,
-        currentLocation: mockRouteData.currentLocation,
+        currentLocation: mockRouteData.currentLocation ?? null,
         isLoading: false,
         isError: false,
         error: null,
@@ -773,7 +774,7 @@ describe('TrackingMap Component', () => {
     it('should disable controls when showControls is false', () => {
       mockUseTrackingRoute.mockReturnValueOnce({
         routeData: mockRouteData,
-        currentLocation: mockRouteData.currentLocation,
+        currentLocation: mockRouteData.currentLocation ?? null,
         isLoading: false,
         isError: false,
         error: null,
@@ -790,7 +791,7 @@ describe('TrackingMap Component', () => {
     it('should pass deliveryId to hook', () => {
       mockUseTrackingRoute.mockReturnValueOnce({
         routeData: mockRouteData,
-        currentLocation: mockRouteData.currentLocation,
+        currentLocation: mockRouteData.currentLocation ?? null,
         isLoading: false,
         isError: false,
         error: null,
@@ -822,7 +823,7 @@ describe('TrackingMap Component', () => {
     it('should have semantic HTML structure', () => {
       mockUseTrackingRoute.mockReturnValueOnce({
         routeData: mockRouteData,
-        currentLocation: mockRouteData.currentLocation,
+        currentLocation: mockRouteData.currentLocation ?? null,
         isLoading: false,
         isError: false,
         error: null,
@@ -837,7 +838,7 @@ describe('TrackingMap Component', () => {
     it('should have descriptive text for icons', () => {
       mockUseTrackingRoute.mockReturnValueOnce({
         routeData: mockRouteData,
-        currentLocation: mockRouteData.currentLocation,
+        currentLocation: mockRouteData.currentLocation ?? null,
         isLoading: false,
         isError: false,
         error: null,
@@ -854,7 +855,7 @@ describe('TrackingMap Component', () => {
     it('should have dark mode classes', () => {
       mockUseTrackingRoute.mockReturnValueOnce({
         routeData: mockRouteData,
-        currentLocation: mockRouteData.currentLocation,
+        currentLocation: mockRouteData.currentLocation ?? null,
         isLoading: false,
         isError: false,
         error: null,
@@ -872,7 +873,7 @@ describe('TrackingMap Component', () => {
     it('should render at mobile viewport', () => {
       mockUseTrackingRoute.mockReturnValueOnce({
         routeData: mockRouteData,
-        currentLocation: mockRouteData.currentLocation,
+        currentLocation: mockRouteData.currentLocation ?? null,
         isLoading: false,
         isError: false,
         error: null,
@@ -887,7 +888,7 @@ describe('TrackingMap Component', () => {
     it('should render at tablet viewport', () => {
       mockUseTrackingRoute.mockReturnValueOnce({
         routeData: mockRouteData,
-        currentLocation: mockRouteData.currentLocation,
+        currentLocation: mockRouteData.currentLocation ?? null,
         isLoading: false,
         isError: false,
         error: null,
@@ -902,7 +903,7 @@ describe('TrackingMap Component', () => {
     it('should render at desktop viewport', () => {
       mockUseTrackingRoute.mockReturnValueOnce({
         routeData: mockRouteData,
-        currentLocation: mockRouteData.currentLocation,
+        currentLocation: mockRouteData.currentLocation ?? null,
         isLoading: false,
         isError: false,
         error: null,
@@ -919,7 +920,7 @@ describe('TrackingMap Component', () => {
     it('should display complete route information', () => {
       mockUseTrackingRoute.mockReturnValueOnce({
         routeData: mockRouteData,
-        currentLocation: mockRouteData.currentLocation,
+        currentLocation: mockRouteData.currentLocation ?? null,
         isLoading: false,
         isError: false,
         error: null,
@@ -936,7 +937,7 @@ describe('TrackingMap Component', () => {
     it('should format distance correctly', () => {
       mockUseTrackingRoute.mockReturnValueOnce({
         routeData: mockRouteData,
-        currentLocation: mockRouteData.currentLocation,
+        currentLocation: mockRouteData.currentLocation ?? null,
         isLoading: false,
         isError: false,
         error: null,

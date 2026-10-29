@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useMultiSigApprovals } from '@/hooks/useMultiSigApprovals';
+import { useMultiSigApprovals, type MultiSigOperation } from '@/hooks/useMultiSigApprovals';
 import { useWalletStore } from '@/store/walletStore';
 import { toast } from 'sonner';
-import { CheckCircle, AlertCircle, Clock, Loader, RotateCw } from 'lucide-react';
+import { CheckCircle, AlertCircle, Clock, Loader, RotateCw, ShieldAlert } from 'lucide-react';
 
 interface SignerRowProps {
   publicKey: string;
@@ -90,6 +90,7 @@ interface OperationCardProps {
   isSigning: boolean;
   onSign: () => void;
   canSign: boolean;
+  isHighValue: boolean;
 }
 
 const OperationCard: React.FC<OperationCardProps> = ({
@@ -103,6 +104,7 @@ const OperationCard: React.FC<OperationCardProps> = ({
   isSigning,
   onSign,
   canSign,
+  isHighValue,
 }) => {
    
   const daysUntilExpiry = Math.ceil(
@@ -134,6 +136,12 @@ const OperationCard: React.FC<OperationCardProps> = ({
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
           <h3 className="font-semibold text-gray-900">{description}</h3>
+          {isHighValue && (
+            <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
+              <ShieldAlert className="h-3 w-3" aria-hidden="true" />
+              High value
+            </span>
+          )}
           <p className="text-sm text-gray-500 font-mono mt-1">{operationId}</p>
         </div>
         <OperationStatusBadge status={status} expiresAt={expiresAt} />
@@ -220,13 +228,15 @@ const ErrorState: React.FC<ErrorStateProps> = ({ error, onRetry }) => (
 interface MultiSigApprovalsProps {
   // Fix applied here: Allow onSignSuccess to accept an operationId parameter
   onSignSuccess?: (operationId: string) => void;
+  /** Called when a high-value operation must go through the high-value approval modal. */
+  onHighValueOperation?: (operation: MultiSigOperation) => void;
 }
 
-const MultiSigApprovals: React.FC<MultiSigApprovalsProps> = ({ onSignSuccess }) => {
+const MultiSigApprovals: React.FC<MultiSigApprovalsProps> = ({ onSignSuccess, onHighValueOperation }) => {
   const wallet = useWalletStore();
   const walletAddress = wallet?.address;
   const { operations, isLoading, error, isSigning, fetchPendingOperations, signOperation, refreshOperations } =
-    useMultiSigApprovals();
+    useMultiSigApprovals({ onHighValueOperation });
 
   const [userPublicKey, setUserPublicKey] = useState<string | null>(null);
 
@@ -308,10 +318,11 @@ const MultiSigApprovals: React.FC<MultiSigApprovalsProps> = ({ onSignSuccess }) 
               expiresAt={operation.expiresAt}
               isSigning={isSigning}
               onSign={async () => {
-                await signOperation(operation);
-                onSignSuccess?.(operation.operationId);
+                const signed = await signOperation(operation);
+                if (signed) onSignSuccess?.(operation.operationId);
               }}
               canSign={canSign}
+              isHighValue={operation.isHighValue}
             />
           );
         })}

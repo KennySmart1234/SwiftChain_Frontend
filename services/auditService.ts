@@ -1,13 +1,25 @@
 import api from '@/lib/api';
+import type {
+  AuditEvent,
+  AuditTrailFilters,
+  AuditTrailSort,
+  AuditTrailResponse,
+  PaginationCursor,
+} from '@/types/audit';
 
-export interface AuditEvent {
-  eventId: string;
-  eventType: string;
-  description: string;
-  timestamp: string;
-  actorId: string;
-  actorAddress: string;
-  metadata?: Record<string, unknown>;
+export type AuditEventStatus = 'confirmed' | 'pending' | 'failed';
+
+export interface AuditEventsQuery {
+  /** Opaque cursor returned by the previous page; omit for the first page */
+  cursor?: string | null;
+  limit: number;
+}
+
+export interface AuditEventsPage {
+  events: AuditEvent[];
+  /** Cursor for the next page, or null when this is the last page */
+  nextCursor: string | null;
+  totalCount: number;
 }
 
 export interface AuditTimelineResponse {
@@ -58,6 +70,72 @@ export const auditService = {
   },
 
   /**
+   * Fetches filtered and paginated audit events for a delivery.
+   * Supports filtering by event type, date range, and actor address.
+   *
+   * @param deliveryId - The delivery ID to fetch events for
+   * @param filters - Filter parameters (event types, date range, actor address)
+   * @param sort - Sort options (field and order)
+   * @param cursor - Pagination cursor for fetching next/previous pages
+   * @param pageSize - Number of events per page (default: 20)
+   */
+  async getAuditTrail(
+    deliveryId: string,
+    filters?: AuditTrailFilters,
+    sort?: AuditTrailSort,
+    cursor?: string,
+    pageSize: number = 20,
+  ): Promise<AuditTrailResponse> {
+    try {
+      const params = new URLSearchParams();
+
+      // Add pagination
+      params.append('pageSize', pageSize.toString());
+      if (cursor) {
+        params.append('cursor', cursor);
+      }
+
+      // Add filters
+      if (filters?.eventTypes && filters.eventTypes.length > 0) {
+        params.append('eventTypes', filters.eventTypes.join(','));
+      }
+      if (filters?.actorAddress) {
+        params.append('actorAddress', filters.actorAddress);
+      }
+      if (filters?.actorId) {
+        params.append('actorId', filters.actorId);
+      }
+      if (filters?.startDate) {
+        params.append('startDate', filters.startDate);
+      }
+      if (filters?.endDate) {
+        params.append('endDate', filters.endDate);
+      }
+
+      // Add sorting
+      if (sort) {
+        params.append('sortField', sort.field);
+        params.append('sortOrder', sort.order);
+      } else {
+        // Default: sort by timestamp descending (newest first)
+        params.append('sortField', 'timestamp');
+        params.append('sortOrder', 'desc');
+      }
+
+      const queryString = params.toString();
+      const url = `/api/audit/delivery/${deliveryId}/events${queryString ? `?${queryString}` : ''}`;
+
+      const { data } = await api.get<AuditTrailResponse>(url);
+      return data;
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to fetch audit trail',
+      };
+    }
+  },
+
+  /**
    * Maps event type to display icon and color.
    */
   getEventIcon(eventType: string): { icon: string; color: string } {
@@ -70,8 +148,32 @@ export const auditService = {
       'dispute-raised': { icon: '⚠️', color: 'bg-red-500' },
       'dispute-resolved': { icon: '✓', color: 'bg-green-500' },
       'escrow-released': { icon: '💵', color: 'bg-emerald-500' },
+      'shipment-created': { icon: '📦', color: 'bg-indigo-500' },
+      'payment-initiated': { icon: '💳', color: 'bg-blue-600' },
+      'payment-completed': { icon: '✓', color: 'bg-green-500' },
+      'contract-modified': { icon: '✏️', color: 'bg-orange-500' },
+      'actor-updated': { icon: '👥', color: 'bg-cyan-500' },
     };
 
     return iconMap[eventType] ?? { icon: '•', color: 'bg-gray-500' };
+  },
+
+  /**
+   * Formats timestamp to a human-readable display format
+   */
+  formatTimestamp(timestamp: string): string {
+    try {
+      const date = new Date(timestamp);
+      return date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+    } catch {
+      return timestamp;
+    }
   },
 };

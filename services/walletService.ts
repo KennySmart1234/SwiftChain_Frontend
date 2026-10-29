@@ -1,3 +1,22 @@
+import axios from 'axios';
+import api from '@/lib/api';
+import type { TransactionResponse } from '@/types/transaction';
+import type {
+  ConnectedWallet,
+  ConnectedWalletsResponse,
+  SetPrimaryWalletResponse,
+  ConnectWalletResponse,
+} from '@/types/wallet.types';
+import type {
+  PendingMultiSigResponse,
+  SignMultiSigParams,
+  SignMultiSigResponse,
+} from '@/types/multiSig';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
+const STELLAR_TESTNET_EXPLORER = 'https://testnet.steexp.com/tx/';
+const STELLAR_PUBLIC_EXPLORER = 'https://steexp.com/tx/';
+
 export interface WalletBalance {
   available: number;
   locked: number;
@@ -12,6 +31,68 @@ export interface BalanceCheckResult {
   requiredAmount: number;
 }
 
+export interface ConnectResponse {
+  success: boolean;
+  message: string;
+  publicKey: string;
+}
+
+export interface DisconnectResponse {
+  success: boolean;
+  message: string;
+}
+
+export interface BalanceResponse {
+  success: boolean;
+  balance: number;
+  message?: string;
+}
+
+export interface Signer {
+  publicKey: string;
+  weight: number;
+  approved: boolean;
+}
+
+export interface PendingMultiSigOperation {
+  operationId: string;
+  transactionEnvelope: string;
+  description: string;
+  signaturesRequired: number;
+  currentSignatures: number;
+  signers: Signer[];
+  createdAt: string;
+  status: 'pending' | 'signed' | 'rejected' | 'expired';
+  expiresAt: string;
+}
+
+export interface PendingMultiSigResponse {
+  success: boolean;
+  message: string;
+  operations?: PendingMultiSigOperation[];
+  totalCount?: number;
+}
+
+export interface SignMultiSigParams {
+  operationId: string;
+  signature: string;
+  signerPublicKey: string;
+}
+
+export interface SignMultiSigResponse {
+  success: boolean;
+  message: string;
+  transactionHash?: string;
+  operationId?: string;
+  currentSignatures?: number;
+}
+
+/**
+ * walletService — responsible for all wallet-related API communication.
+ * The hook calls this; components never call this directly.
+ *
+ * Layered Architecture: Component -> Hook -> Service
+ */
 class WalletService {
   private static instance: WalletService;
   private balanceCache: WalletBalance | null = null;
@@ -51,7 +132,7 @@ class WalletService {
       }
 
       const data = await response.json();
-      
+
       // Validate response structure
       const balance: WalletBalance = {
         available: data.data.available || 0,
@@ -115,6 +196,25 @@ class WalletService {
       this.balanceCache !== null &&
       Date.now() - this.lastFetchTime < this.CACHE_DURATION
     );
+  }
+
+  /**
+   * Fetch pending multi-signature operations awaiting the given wallet's approval.
+   */
+  async getPendingMultiSigOperations(walletAddress: string): Promise<PendingMultiSigResponse> {
+    const { data } = await api.get<PendingMultiSigResponse>('/wallet/multi-sig/pending', {
+      params: { walletAddress },
+    });
+    return data;
+  }
+
+  /**
+   * Submit a signature for a multi-sig operation. The backend broadcasts the
+   * transaction once all required signatures are collected.
+   */
+  async signMultiSigOperation(params: SignMultiSigParams): Promise<SignMultiSigResponse> {
+    const { data } = await api.post<SignMultiSigResponse>('/wallet/multi-sig/sign', params);
+    return data;
   }
 
   /**

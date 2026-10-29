@@ -55,8 +55,20 @@ export interface OpenDisputeResponse {
 // ---------------------------------------------------------------------------
 
 /**
- * Fetches the current state of an escrow contract.
- * @param escrowId The contract address.
+ * Escrow Service - Manages smart contract interactions for locking and releasing funds
+ * 
+ * This service provides an interface for:
+ * - Locking escrow funds for deliveries
+ * - Releasing escrow funds after conditions are met
+ * - Fetching current escrow contract state
+ * 
+ * In production, these methods integrate with Stellar SDK for Soroban contract calls.
+ * For testing, they are fully mocked to simulate blockchain behavior.
+ * 
+ * IMPORTANT: This file serves primarily as the service interface for testing.
+ * Real blockchain implementation would use stellar-sdk for transaction building,
+ * wallet signing, and Soroban contract invocation. For this task, we focus on
+ * testing the hooks with realistic mock responses.
  */
 async function getEscrowDetails(escrowId: string): Promise<EscrowDetails> {
   // TODO: Replace with real Soroban contract call once stellar-sdk is installed.
@@ -71,7 +83,17 @@ async function getEscrowDetails(escrowId: string): Promise<EscrowDetails> {
 
 /**
  * Invokes the 'release_funds' function on the escrow contract.
- * @param escrowId The contract address.
+ * 
+ * In real implementation:
+ * - Retrieves connected wallet (e.g., Freighter)
+ * - Builds Stellar transaction with Operation.invokeContract()
+ * - Signs transaction with wallet.signTransaction()
+ * - Submits to Soroban network via Server.sendTransaction()
+ * - Polls Server.getTransaction() until completion
+ * 
+ * @param escrowId The contract address on Soroban
+ * @returns ReleaseFundsResponse with transaction hash on success
+ * @throws Error if wallet is not connected, transaction fails, or times out
  */
 async function releaseFunds(escrowId: string): Promise<ReleaseFundsResponse> {
   // TODO: Replace with real Soroban transaction once stellar-sdk is installed.
@@ -112,6 +134,10 @@ async function openDispute(params: OpenDisputeParams): Promise<OpenDisputeRespon
   };
 }
 
+/**
+ * Singleton escrow service export for use in hooks and components
+ * All methods are mocked in test environment via jest.mock()
+ */
 export const escrowService = {
   getEscrowDetails,
   releaseFunds,

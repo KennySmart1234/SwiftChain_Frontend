@@ -1,7 +1,9 @@
 'use client';
 
 import { MapPin, Navigation, Package, TrendingUp, X } from 'lucide-react';
+import { useRef } from 'react';
 import { DeliveryJob } from '@/services/driverJobService';
+import { ModalFocusTrap } from '@/components/shared/ModalFocusTrap';
 
 interface AcceptJobModalProps {
   job: DeliveryJob;
@@ -13,6 +15,11 @@ interface AcceptJobModalProps {
 /**
  * AcceptJobModal — confirmation dialog before a driver accepts a delivery.
  * Shows full job details and requires an explicit confirm action.
+ * 
+ * Now uses ModalFocusTrap for WCAG 2.1 keyboard accessibility:
+ * - Tab cycles only within the modal (never reaching background)
+ * - Escape key closes the modal
+ * - Proper ARIA attributes applied
  */
 export function AcceptJobModal({
   job,
@@ -20,15 +27,34 @@ export function AcceptJobModal({
   onConfirm,
   onCancel,
 }: AcceptJobModalProps) {
+  const modalRef = useRef<HTMLDivElement>(null);
+  const isOpen = !!job; // Modal is open if job is provided
+
   return (
-    /* Backdrop */
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="accept-job-title"
-    >
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
+    <>
+      {/* Backdrop overlay - outside ModalFocusTrap to allow click detection */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50"
+          onClick={(e) => {
+            // Only close if clicking directly on backdrop (not modal)
+            if (e.target === e.currentTarget) {
+              onCancel();
+            }
+          }}
+        />
+      )}
+      
+      {/* Focus trap wrapper with WCAG-compliant keyboard handling */}
+      <ModalFocusTrap
+        ref={modalRef}
+        id="accept-job-modal"
+        isOpen={isOpen}
+        onClose={onCancel}
+        ariaLabelledBy="accept-job-title"
+        className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      >
+        <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
         {/* Header */}
         <div className="flex items-center justify-between">
           <h2
@@ -107,7 +133,8 @@ export function AcceptJobModal({
             {isAccepting ? 'Accepting…' : 'Yes, Accept Job'}
           </button>
         </div>
-      </div>
-    </div>
+        </div>
+      </ModalFocusTrap>
+    </>
   );
 }

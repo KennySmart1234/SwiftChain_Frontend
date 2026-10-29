@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 import { useEscrowPayout } from '@/hooks/useEscrowPayout';
 import { SignatureProgressBar } from './SignatureProgressBar';
 import { SignerList } from './SignerList';
+import { PayoutFeeBreakdown } from './PayoutFeeBreakdown';
 
 
 interface PayoutUIProps {
@@ -19,6 +20,9 @@ export function PayoutUI({ escrowId }: PayoutUIProps) {
     signers,
     canRelease,
     releaseFunds,
+    feeBreakdown,
+    isFeeBreakdownLoading,
+    feeBreakdownError,
   } = useEscrowPayout(escrowId);
 
   if (isLoading) {
@@ -49,6 +53,11 @@ export function PayoutUI({ escrowId }: PayoutUIProps) {
         required={requiredSignatures}
       />
       <SignerList signers={signers} requiredSignatures={requiredSignatures} />
+      <PayoutFeeBreakdown
+        breakdown={feeBreakdown}
+        isLoading={isFeeBreakdownLoading}
+        error={feeBreakdownError}
+      />
       <button
         onClick={() => void releaseFunds()}
         disabled={!canRelease || isLoading}

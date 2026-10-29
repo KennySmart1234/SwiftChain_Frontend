@@ -45,7 +45,17 @@ const MOCK_OPERATION = {
   ],
   createdAt: '2026-06-01T10:00:00Z',
   status: 'pending' as const,
-  expiresAt: '2026-06-08T10:00:00Z',
+  // Relative to now so the operation stays signable whenever the suite runs
+  expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+  isHighValue: false,
+  riskLevel: 'low' as const,
+};
+
+const HIGH_VALUE_DEFAULTS = {
+  highValueThresholdXlm: 10000,
+  pendingHighValueOperation: null,
+  confirmHighValueOperation: jest.fn(),
+  cancelHighValueOperation: jest.fn(),
 };
 
 describe('MultiSigApprovals Component', () => {
@@ -61,6 +71,7 @@ describe('MultiSigApprovals Component', () => {
 
   test('should render loading state initially', () => {
     mockUseMultiSigApprovals.mockReturnValue({
+      ...HIGH_VALUE_DEFAULTS,
       operations: [],
       isLoading: true,
       error: null,
@@ -77,6 +88,7 @@ describe('MultiSigApprovals Component', () => {
 
   test('should display empty state when no operations exist', async () => {
     mockUseMultiSigApprovals.mockReturnValue({
+      ...HIGH_VALUE_DEFAULTS,
       operations: [],
       isLoading: false,
       error: null,
@@ -97,6 +109,7 @@ describe('MultiSigApprovals Component', () => {
   test('should display error state with retry button', async () => {
     const mockRefresh = jest.fn();
     mockUseMultiSigApprovals.mockReturnValue({
+      ...HIGH_VALUE_DEFAULTS,
       operations: [],
       isLoading: false,
       error: 'Failed to fetch operations from the backend',
@@ -122,6 +135,7 @@ describe('MultiSigApprovals Component', () => {
 
   test('should render list of pending operations', async () => {
     mockUseMultiSigApprovals.mockReturnValue({
+      ...HIGH_VALUE_DEFAULTS,
       operations: [MOCK_OPERATION],
       isLoading: false,
       error: null,
@@ -141,6 +155,7 @@ describe('MultiSigApprovals Component', () => {
 
   test('should display operation details including signatures count', async () => {
     mockUseMultiSigApprovals.mockReturnValue({
+      ...HIGH_VALUE_DEFAULTS,
       operations: [MOCK_OPERATION],
       isLoading: false,
       error: null,
@@ -159,6 +174,7 @@ describe('MultiSigApprovals Component', () => {
 
   test('should display progress bar for signature collection', async () => {
     mockUseMultiSigApprovals.mockReturnValue({
+      ...HIGH_VALUE_DEFAULTS,
       operations: [MOCK_OPERATION],
       isLoading: false,
       error: null,
@@ -177,6 +193,7 @@ describe('MultiSigApprovals Component', () => {
 
   test('should display operation status badge', async () => {
     mockUseMultiSigApprovals.mockReturnValue({
+      ...HIGH_VALUE_DEFAULTS,
       operations: [MOCK_OPERATION],
       isLoading: false,
       error: null,
@@ -196,6 +213,7 @@ describe('MultiSigApprovals Component', () => {
 
   test('should display signers list with approval status', async () => {
     mockUseMultiSigApprovals.mockReturnValue({
+      ...HIGH_VALUE_DEFAULTS,
       operations: [MOCK_OPERATION],
       isLoading: false,
       error: null,
@@ -216,6 +234,7 @@ describe('MultiSigApprovals Component', () => {
 
   test('should display Sign Operation button for unsigned operations', async () => {
     mockUseMultiSigApprovals.mockReturnValue({
+      ...HIGH_VALUE_DEFAULTS,
       operations: [MOCK_OPERATION],
       isLoading: false,
       error: null,
@@ -242,6 +261,7 @@ describe('MultiSigApprovals Component', () => {
     };
 
     mockUseMultiSigApprovals.mockReturnValue({
+      ...HIGH_VALUE_DEFAULTS,
       operations: [signedOperation],
       isLoading: false,
       error: null,
@@ -277,6 +297,7 @@ describe('MultiSigApprovals Component', () => {
     };
 
     mockUseMultiSigApprovals.mockReturnValue({
+      ...HIGH_VALUE_DEFAULTS,
       operations: [completeOperation],
       isLoading: false,
       error: null,
@@ -296,6 +317,7 @@ describe('MultiSigApprovals Component', () => {
   test('should call signOperation when Sign button is clicked', async () => {
     const mockSign = jest.fn();
     mockUseMultiSigApprovals.mockReturnValue({
+      ...HIGH_VALUE_DEFAULTS,
       operations: [MOCK_OPERATION],
       isLoading: false,
       error: null,
@@ -319,9 +341,10 @@ describe('MultiSigApprovals Component', () => {
 
   test('should call onSignSuccess callback after signing', async () => {
     const mockOnSuccess = jest.fn();
-    const mockSign = jest.fn((op) => Promise.resolve());
+    const mockSign = jest.fn(() => Promise.resolve(true));
     
     mockUseMultiSigApprovals.mockReturnValue({
+      ...HIGH_VALUE_DEFAULTS,
       operations: [MOCK_OPERATION],
       isLoading: false,
       error: null,
@@ -347,6 +370,7 @@ describe('MultiSigApprovals Component', () => {
 
   test('should disable sign button while signing', async () => {
     mockUseMultiSigApprovals.mockReturnValue({
+      ...HIGH_VALUE_DEFAULTS,
       operations: [MOCK_OPERATION],
       isLoading: false,
       error: null,
@@ -374,6 +398,7 @@ describe('MultiSigApprovals Component', () => {
     };
 
     mockUseMultiSigApprovals.mockReturnValue({
+      ...HIGH_VALUE_DEFAULTS,
       operations: [expiringOperation],
       isLoading: false,
       error: null,
@@ -401,6 +426,7 @@ describe('MultiSigApprovals Component', () => {
     };
 
     mockUseMultiSigApprovals.mockReturnValue({
+      ...HIGH_VALUE_DEFAULTS,
       operations: [expiredOperation],
       isLoading: false,
       error: null,
@@ -420,6 +446,7 @@ describe('MultiSigApprovals Component', () => {
   test('should have refresh button to reload operations', async () => {
     const mockRefresh = jest.fn();
     mockUseMultiSigApprovals.mockReturnValue({
+      ...HIGH_VALUE_DEFAULTS,
       operations: [MOCK_OPERATION],
       isLoading: false,
       error: null,
@@ -441,6 +468,7 @@ describe('MultiSigApprovals Component', () => {
   test('should fetch operations when wallet address changes', () => {
     const mockFetch = jest.fn();
     mockUseMultiSigApprovals.mockReturnValue({
+      ...HIGH_VALUE_DEFAULTS,
       operations: [],
       isLoading: false,
       error: null,
@@ -463,6 +491,7 @@ describe('MultiSigApprovals Component', () => {
     };
 
     mockUseMultiSigApprovals.mockReturnValue({
+      ...HIGH_VALUE_DEFAULTS,
       operations: [MOCK_OPERATION, operation2],
       isLoading: false,
       error: null,
@@ -479,5 +508,73 @@ describe('MultiSigApprovals Component', () => {
       expect(screen.getByText(/Transfer 500 XLM to another recipient/)).toBeInTheDocument();
       expect(screen.getByText(/Pending Approvals.*2/)).toBeInTheDocument();
     });
+  });
+
+  test('should show a high value badge only on high-value operations', async () => {
+    const highValueOperation = {
+      ...MOCK_OPERATION,
+      operationId: 'op-002-highvalue',
+      description: 'Release 25000 XLM cargo escrow',
+      amountXlm: 25000,
+      isHighValue: true,
+      riskLevel: 'high' as const,
+    };
+
+    mockUseMultiSigApprovals.mockReturnValue({
+      ...HIGH_VALUE_DEFAULTS,
+      operations: [MOCK_OPERATION, highValueOperation],
+      isLoading: false,
+      error: null,
+      isSigning: false,
+      fetchPendingOperations: jest.fn(),
+      signOperation: jest.fn(),
+      refreshOperations: jest.fn(),
+    });
+
+    render(<MultiSigApprovals />);
+
+    expect(screen.getAllByText('High value')).toHaveLength(1);
+    const card = screen.getByText('Release 25000 XLM cargo escrow').closest('div');
+    expect(card).toHaveTextContent('High value');
+  });
+
+  test('should pass the high-value callback through to the hook', () => {
+    const onHighValueOperation = jest.fn();
+    mockUseMultiSigApprovals.mockReturnValue({
+      ...HIGH_VALUE_DEFAULTS,
+      operations: [],
+      isLoading: false,
+      error: null,
+      isSigning: false,
+      fetchPendingOperations: jest.fn(),
+      signOperation: jest.fn(),
+      refreshOperations: jest.fn(),
+    });
+
+    render(<MultiSigApprovals onHighValueOperation={onHighValueOperation} />);
+
+    expect(mockUseMultiSigApprovals).toHaveBeenCalledWith({ onHighValueOperation });
+  });
+
+  test('should not call onSignSuccess when signing is deferred to the high-value modal', async () => {
+    const mockOnSuccess = jest.fn();
+    const mockSign = jest.fn(() => Promise.resolve(false));
+    mockUseMultiSigApprovals.mockReturnValue({
+      ...HIGH_VALUE_DEFAULTS,
+      operations: [{ ...MOCK_OPERATION, amountXlm: 50000, isHighValue: true, riskLevel: 'high' }],
+      isLoading: false,
+      error: null,
+      isSigning: false,
+      fetchPendingOperations: jest.fn(),
+      signOperation: mockSign,
+      refreshOperations: jest.fn(),
+    });
+
+    render(<MultiSigApprovals onSignSuccess={mockOnSuccess} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Sign Operation/i }));
+
+    await waitFor(() => expect(mockSign).toHaveBeenCalled());
+    expect(mockOnSuccess).not.toHaveBeenCalled();
   });
 });

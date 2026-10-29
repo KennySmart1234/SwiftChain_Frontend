@@ -5,6 +5,7 @@ import clsx from 'clsx';
 import { useEffect, useRef } from 'react';
 import { useEscrowRelease, ReleaseStep } from '@/hooks/useEscrowRelease';
 import { useWalletStore } from '@/store/walletStore';
+import { ModalFocusTrap } from '@/components/shared/ModalFocusTrap';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -64,6 +65,7 @@ function StatusIcon({ step }: { step: ReleaseStep }) {
 // ─── Confirmation Modal ───────────────────────────────────────────────────────
 
 interface ConfirmModalProps {
+  isOpen: boolean;
   escrowId: string;
   deliveryId: string;
   walletAddress: string;
@@ -73,29 +75,44 @@ interface ConfirmModalProps {
   onCancel: () => void;
 }
 
+/**
+ * ConfirmModal — WCAG 2.1 compliant confirmation dialog for escrow release
+ * Uses ModalFocusTrap for keyboard accessibility:
+ * - Tab cycles only within the modal
+ * - Escape key closes the modal
+ * - Proper ARIA attributes applied
+ */
 function ConfirmModal({
+  isOpen,
   amount,
   currency,
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
-  const overlayRef = useRef<HTMLDivElement>(null);
-
-  // Close on overlay click
-  const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === overlayRef.current) onCancel();
-  };
+  const modalRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div
-      ref={overlayRef}
-      onClick={handleOverlayClick}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="escrow-modal-title"
-    >
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+    <>
+      {/* Backdrop overlay - outside ModalFocusTrap for click detection */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) onCancel();
+          }}
+        />
+      )}
+
+      {/* Focus trap wrapper with WCAG-compliant keyboard handling */}
+      <ModalFocusTrap
+        ref={modalRef}
+        id="escrow-confirm-modal"
+        isOpen={isOpen}
+        onClose={onCancel}
+        ariaLabelledBy="escrow-modal-title"
+        className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      >
+        <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-100 mx-auto mb-4">
           <svg className="h-7 w-7 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
@@ -144,8 +161,9 @@ function ConfirmModal({
             Yes, Release Payment
           </button>
         </div>
-      </div>
-    </div>
+        </div>
+      </ModalFocusTrap>
+    </>
   );
 }
 
@@ -327,17 +345,16 @@ export function EscrowRelease({ escrowId, deliveryId }: EscrowReleaseProps) {
       </div>
 
       {/* Confirmation modal — rendered when step === 'confirming' */}
-      {step === 'confirming' && (
-        <ConfirmModal
-          escrowId={escrowId}
-          deliveryId={deliveryId}
-          walletAddress={address ?? ''}
-          amount={escrowDetails?.amount}
-          currency={escrowDetails?.currency}
-          onConfirm={handleConfirm}
-          onCancel={handleCancel}
-        />
-      )}
+      <ConfirmModal
+        isOpen={step === 'confirming'}
+        escrowId={escrowId}
+        deliveryId={deliveryId}
+        walletAddress={address ?? ''}
+        amount={escrowDetails?.amount}
+        currency={escrowDetails?.currency}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+      />
     </>
   );
 }

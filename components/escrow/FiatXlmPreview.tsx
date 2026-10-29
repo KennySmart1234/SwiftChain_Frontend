@@ -9,8 +9,13 @@
  *
  * The component blocks submission if critical slippage is detected but not acknowledged.
  *
+ * Also renders live, localized NGN/USD equivalents below the XLM total,
+ * which update instantly whenever the caller's xlmAmount changes.
+ *
  * Architecture: FiatXlmPreview (Component) → useFiatXlmSlippage (Hook) →
  *              fiatXlmSlippageService → fxService → Backend
+ *              → useLocalizedFiatPreview (Hook) → localizedFxService →
+ *              currencyRateService → Backend
  */
 
 import React, { useEffect } from 'react';
@@ -21,6 +26,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useFiatXlmSlippage } from '@/hooks/useFiatXlmSlippage';
+import { useLocalizedFiatPreview } from '@/hooks/useLocalizedFiatPreview';
 import { formatNgn } from '@/services/fxService';
 import { SlippageWarning } from '@/components/escrow/SlippageWarning';
 
@@ -53,6 +59,7 @@ export function FiatXlmPreview({
   cancelLabel = 'Cancel',
 }: FiatXlmPreviewProps) {
   const slippage = useFiatXlmSlippage();
+  const localizedFiat = useLocalizedFiatPreview(xlmAmount);
 
   // Initialize quote tracking when component mounts or rate changes
   useEffect(() => {
@@ -116,6 +123,20 @@ export function FiatXlmPreview({
             {xlmAmount.toFixed(2)} XLM
           </span>
         </div>
+
+        {/* Localized fiat equivalents — updates instantly as xlmAmount changes */}
+        {localizedFiat.equivalents.some((eq) => eq.formatted) && (
+          <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+            {localizedFiat.equivalents.map((eq) =>
+              eq.formatted ? (
+                <span key={eq.fiatCode}>
+                  ≈ {eq.formatted}{' '}
+                  <span className="text-gray-400 dark:text-gray-500">({eq.fiatCode})</span>
+                </span>
+              ) : null,
+            )}
+          </div>
+        )}
 
         {/* Quoted NGN */}
         <div className="flex items-center justify-between border-t border-gray-200 pt-2 dark:border-gray-700">

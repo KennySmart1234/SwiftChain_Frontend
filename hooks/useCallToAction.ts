@@ -23,17 +23,10 @@ export interface UseCallToActionReturn {
   isSuccess: boolean;
   responseMessage: string | null;
   error: string | null;
-  onSubmit: (values: CtaFormValues) => Promise<void>;
+  onSubmit: (_values: CtaFormValues) => Promise<void>;
   resetForm: () => void;
 }
 
-/**
- * useCallToAction — orchestrates the landing page "Ready to Chain" email
- * signup flow. Validates with Zod, calls ctaService, and manages
- * submission / success / error state.
- *
- * Components consume this hook; they never call ctaService directly.
- */
 export function useCallToAction(): UseCallToActionReturn {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -46,7 +39,6 @@ export function useCallToAction(): UseCallToActionReturn {
     mode: 'onBlur',
   });
 
-  // AbortController ref to cancel in-flight requests on unmount
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -61,7 +53,6 @@ export function useCallToAction(): UseCallToActionReturn {
       setError(null);
       setResponseMessage(null);
 
-      // Abort any previous in-flight request
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;

@@ -1,5 +1,5 @@
 import './global.css';
-import OfflineBanner from '@/components/wallet/ui/OfflineBanner';
+import OfflineBanner from '@/components/ui/OfflineBanner';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Providers } from './providers';
 import { NotificationProvider } from '@/context/NotificationContext';
@@ -10,6 +10,8 @@ import ToastProvider from '@/components/providers/ToastProvider';
 import ModalProvider from '@/components/providers/ModalProvider';
 import { GlobalFooter } from '@/components/shared/GlobalFooter';
 import { themeService } from '@/services/themeService';
+import { CurrencySelector } from '@/components/layout/CurrencySelector';
+import { PushNotificationButton } from '@/components/layout/PushNotificationButton';
 
 export const metadata = {
   title: 'SwiftChain',
@@ -45,6 +47,8 @@ export default function RootLayout({
                     gap: '0.5rem',
                   }}
                 >
+                  <CurrencySelector />
+                  <PushNotificationButton />
                   <NotificationCenter />
                   <ThemeToggle />
                 </div>

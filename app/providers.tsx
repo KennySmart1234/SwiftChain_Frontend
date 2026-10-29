@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@/components/shared/ThemeProvider';
 import { LanguageProvider } from '@/contexts/LanguageContext';
+import { CurrencyProvider } from '@/context/CurrencyContext';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -21,7 +22,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <LanguageProvider>
-          {children}
+          <CurrencyProvider>{children}</CurrencyProvider>
         </LanguageProvider>
       </ThemeProvider>
     </QueryClientProvider>

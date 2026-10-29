@@ -10,11 +10,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { toastService, ToastConfig, ToastMessage } from '@/lib/toast';
 
 export interface UseToastReturn {
-  success: (message: string, description?: string, duration?: number) => void;
-  error: (message: string, description?: string, duration?: number) => void;
-  info: (message: string, description?: string, duration?: number) => void;
-  loading: (message: string, description?: string) => void;
-  toast: (config: ToastConfig) => void;
+  success: (_message: string, _description?: string, _duration?: number) => void;
+  error: (_message: string, _description?: string, _duration?: number) => void;
+  info: (_message: string, _description?: string, _duration?: number) => void;
+  loading: (_message: string, _description?: string) => void;
+  toast: (_config: ToastConfig) => void;
   isLoading: boolean;
   notifications: ToastMessage[];
   fetchNotifications: () => Promise<void>;
@@ -50,8 +50,8 @@ export function useToast(): UseToastReturn {
           }
         });
       }
-    } catch (err: any) {
-      console.error('Failed to fetch notifications:', err.message);
+    } catch {
+      setNotifications([]);
     } finally {
       setIsLoading(false);
     }
@@ -108,7 +108,6 @@ export function useToast(): UseToastReturn {
     // Support both `title` (component API) and `message` (service API)
     const text = title ?? message ?? '';
     switch (variant) {
-      case 'destructive':
       case 'error':
         toastService.error(text, description, duration);
         break;

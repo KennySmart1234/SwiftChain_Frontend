@@ -1,0 +1,12 @@
+LIGHT MODE DESIGN
+
+//Design Light Mode Titles
+Support Tickets (Grid View): A card-based presentation for scanning active support requests and their key details.
+Support Tickets (Table View): A structured tabular layout for reviewing ticket information efficiently.
+Merchant Integration Settings: A developer-focused interface for configuring webhooks that support automated shipping workflows.
+Support Tickets (List View): A streamlined list layout for browsing and identifying active support tickets.
+
+
+//Design Light Mode reference
+https://www.figma.com/design/2kP82C0Z8z0X3CncLQmfhB/Stellar-Project-Fig?node-id=3104-2&p=f&t=8viSao94cjKWsGb3-0
+

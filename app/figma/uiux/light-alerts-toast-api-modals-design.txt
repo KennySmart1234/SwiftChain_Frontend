@@ -1,0 +1,13 @@
+LIGHT MODE DESIGNS INCLUDE
+
+//Design Light Mode Titles
+#690 — Global System Alerts UI: Designed slide-in alerts for platform-wide information, including wallet and connection status changes.
+
+#688 — Global Toast Notifications: Created reusable success, error, and warning toast patterns with clear visual distinctions.
+
+#684 — Merchant API Keys: Designed a developer-oriented interface for generating and managing API keys for automated shipping.
+
+#686 — Global Modals: Established consistent warning modal layouts for important actions and potentially disruptive decisions.
+
+
+https://www.figma.com/design/2kP82C0Z8z0X3CncLQmfhB/Stellar-Project-Fig?node-id=3104-2&p=f&t=8viSao94cjKWsGb3-0

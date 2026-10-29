@@ -1,0 +1,11 @@
+LIGHT MODE DESIGN
+
+//Design Light Mode Titles
+FAQ (#674): An accordion-based layout for browsing frequently asked questions.
+Help Center (#672): A centralized page presenting office locations, contact information, and support resources.
+Offline Mode Synchronization Banner & Data Cache (#670): A clear status banner communicating queued data and synchronization state for drivers in low-connectivity environments.
+System Admin Platform Escrow Settings (#668): An administrative interface for configuring smart contract parameters and escrow-related options.
+
+
+//Design Light Mode reference
+https://www.figma.com/design/2kP82C0Z8z0X3CncLQmfhB/Stellar-Project-Fig?node-id=3104-2&p=f&t=8viSao94cjKWsGb3-0

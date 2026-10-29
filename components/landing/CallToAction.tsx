@@ -2,11 +2,6 @@
 
 import { useCallToAction } from '@/hooks/useCallToAction';
 
-/**
- * CallToAction — Large rounded blue surface block inviting users to join
- * SwiftChain's early access. Features an email input field with HTML5
- * validation and a prominent 'Get Access' submission button.
- */
 export function CallToAction() {
   const {
     form,

@@ -1,0 +1,15 @@
+LIGHT MODE DESIGN
+
+//Design Light Mode Titles
+Logistics Route Optimization & Waypoint Planner (#632): A visual route-planning workspace for managing delivery stops and optimizing fleet routes.
+
+Fleet Operator Driver Assignment Panel (#634): A drag-and-drop interface for allocating pending shipments to available drivers.
+
+Secure Handoff QR Code Scanner (#630): A mobile-first scanning screen for validating package transfers between senders and drivers.
+
+Proof of Delivery Upload (#628): A mobile-friendly delivery confirmation flow for recipient signatures and package photographs.
+
+
+//Design Light Mode reference
+https://www.figma.com/design/2kP82C0Z8z0X3CncLQmfhB/Stellar-Project-Fig?node-id=3104-2&p=f&t=8viSao94cjKWsGb3-0
+
