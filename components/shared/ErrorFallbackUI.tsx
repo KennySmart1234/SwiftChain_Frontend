@@ -117,9 +117,9 @@ export function ErrorFallbackUI({
           </button>
         </div>
 
-        {/* Error ID (if available) */}
+        {/* Error ID */}
         <p className={`text-center text-xs ${subtextClass} mt-6`}>
-          Error ID: {Date.now()}
+          Error ID: unavailable
         </p>
       </div>
     </div>

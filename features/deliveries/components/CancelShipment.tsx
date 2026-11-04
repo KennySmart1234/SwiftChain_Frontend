@@ -24,6 +24,7 @@ interface CancelShipmentProps {
  */
 export function CancelShipment({ shipmentId }: CancelShipmentProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   const {
     canCancel,
@@ -62,8 +63,6 @@ export function CancelShipment({ shipmentId }: CancelShipmentProps) {
     cancel();
     setIsModalOpen(false);
   };
-
-  const modalRef = useRef<HTMLDivElement>(null);
 
   return (
     <div className="mt-4">

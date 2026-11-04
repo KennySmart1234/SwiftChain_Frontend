@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import axios from 'axios';
+import { isCancel } from '@/lib/httpClient';
 import { settlementService } from '@/services/settlementService';
 import type { SettlementDiagramData } from '@/types/settlement';
 
@@ -36,7 +36,7 @@ export function useSettlementDiagram(): UseSettlementDiagramResult {
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        if (axios.isCancel(err)) return;
+        if (isCancel(err)) return;
         const message =
           err instanceof Error && err.message
             ? err.message

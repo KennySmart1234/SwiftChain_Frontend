@@ -1,12 +1,11 @@
-import React, { useState } from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HighValueCargoMultiSigModal } from '@/components/escrow/HighValueCargoMultiSigModal';
 import {
-  useHighValueCargoApproval,
-  type UseHighValueCargoApprovalResult,
-} from '@/hooks/useHighValueCargoApproval';
-import type { HighValueCargoApproval } from '@/types/highValueCargo';
+  highValueCargoService,
+  HighValueCargoServiceError,
+} from '@/services/highValueCargoService';
 import {
   FIXED_NOW,
   SHIPMENT_ID,
@@ -14,68 +13,49 @@ import {
   domesticApprovalResponse,
   expiredApprovalResponse,
   readyApprovalResponse,
+  submitApprovalResponse,
 } from '@/hooks/__tests__/fixtures/highValueCargoApiResponses';
 
-jest.mock('@/hooks/useHighValueCargoApproval', () => ({
-  ...jest.requireActual('@/hooks/useHighValueCargoApproval'),
-  useHighValueCargoApproval: jest.fn(),
-}));
+jest.mock('@/services/highValueCargoService', () => {
+  const actual = jest.requireActual('@/services/highValueCargoService');
+  return {
+    ...actual,
+    highValueCargoService: { getApproval: jest.fn(), submitApproval: jest.fn() },
+  };
+});
 
-const mockUseHighValueCargoApproval = useHighValueCargoApproval as jest.MockedFunction<
-  typeof useHighValueCargoApproval
+const mockGetApproval = highValueCargoService.getApproval as jest.MockedFunction<
+  typeof highValueCargoService.getApproval
+>;
+const mockSubmitApproval = highValueCargoService.submitApproval as jest.MockedFunction<
+  typeof highValueCargoService.submitApproval
 >;
 
-const REMAINING_MS = (2 * 3600 + 30 * 60 + 15) * 1000;
-
-function hookStateFor(
-  approval: HighValueCargoApproval | null,
-  overrides: Partial<UseHighValueCargoApprovalResult> = {},
-): UseHighValueCargoApprovalResult {
-  const approvedCount = approval?.signers.filter((s) => s.status === 'approved').length ?? 0;
-  const requiredSignatures = approval?.requiredSignatures ?? 0;
-  const isExpired = approval?.status === 'expired';
-  const state: UseHighValueCargoApprovalResult = {
-    approval,
-    isLoading: false,
-    error: null,
-    refetch: jest.fn(),
-    approvedCount,
-    requiredSignatures,
-    allSignaturesCollected: !!approval && approvedCount >= requiredSignatures,
-    remainingMs: isExpired ? 0 : REMAINING_MS,
-    isExpired,
-    acknowledged: false,
-    setAcknowledged: jest.fn(),
-    canSubmit: false,
-    isSubmitting: false,
-    submitError: null,
-    submit: jest.fn(),
-    ...overrides,
-  };
-  return state;
-}
-
-function renderModal(
-  state: UseHighValueCargoApprovalResult,
-  props: Partial<React.ComponentProps<typeof HighValueCargoMultiSigModal>> = {},
-) {
-  mockUseHighValueCargoApproval.mockReturnValue(state);
+function renderModal(props: Partial<React.ComponentProps<typeof HighValueCargoMultiSigModal>> = {}) {
   const onClose = jest.fn();
   const onSubmitted = jest.fn();
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { gcTime: 0, retry: false }, mutations: { retry: false } },
+  });
   const utils = render(
-    <HighValueCargoMultiSigModal
-      shipmentId={SHIPMENT_ID}
-      isOpen
-      onClose={onClose}
-      onSubmitted={onSubmitted}
-      {...props}
-    />,
+    <QueryClientProvider client={queryClient}>
+      <HighValueCargoMultiSigModal
+        shipmentId={SHIPMENT_ID}
+        isOpen
+        onClose={onClose}
+        onSubmitted={onSubmitted}
+        {...props}
+      />
+    </QueryClientProvider>,
   );
-  return { ...utils, onClose, onSubmitted, state };
+  return { ...utils, onClose, onSubmitted };
 }
 
-const submitButton = () => screen.getByRole('button', { name: 'Approve release' });
-const acknowledgement = () => screen.getByRole('checkbox', { name: /i acknowledge/i });
+async function findDialog() {
+  const dialog = await screen.findByRole('dialog', { name: 'High-value cargo approval' });
+  await within(dialog).findByText('Shipment value');
+  return dialog;
+}
 
 describe('HighValueCargoMultiSigModal', () => {
   beforeEach(() => {

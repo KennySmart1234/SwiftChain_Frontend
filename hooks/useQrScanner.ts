@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { qrScannerService } from '../services/qrScannerService';
+import { qrScannerService } from '@/services/qrScannerService';
 
 interface QrScannerHookResult {
   error: string | null;
   videoRef: React.RefObject<HTMLVideoElement | null>;
   isCameraActive: boolean;
-  verifyMutation: ReturnType<typeof useMutation>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  verifyMutation: ReturnType<typeof useMutation<any, Error, string>>;
   startCamera: () => Promise<void>;
   stopCamera: () => void;
   

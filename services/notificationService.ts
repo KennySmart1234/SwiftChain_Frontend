@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '@/lib/httpClient';
 import type { Notification } from '@/context/NotificationContext';
 import { apiClient } from './api';
 

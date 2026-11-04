@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '@/lib/httpClient';
 import { FeeEstimate, FeeEstimationResult } from '@/types/fee';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '';

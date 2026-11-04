@@ -226,124 +226,100 @@ class WalletService {
   }
 
   /**
-   * Registers the Freighter wallet session with the backend.
-   * The backend verifies the public key and returns a confirmed session.
+   * Register a connected wallet public key with the backend.
    */
-  async connect(publicKey: string): Promise<ConnectResponse> {
-    const { data } = await axios.post<ConnectResponse>(
-      `${API_BASE_URL}/api/wallet/connect`,
-      { publicKey }
-    );
-    return data;
-  }
-
-  async disconnect(): Promise<DisconnectResponse> {
-    const { data } = await axios.post<DisconnectResponse>(
-      `${API_BASE_URL}/api/wallet/disconnect`
-    );
-    return data;
-  }
-
-  /**
-   * Fetch the XLM balance for the given wallet address from the backend.
-   * The backend is the single source of truth — no Stellar SDK calls in the browser.
-   */
-  async getBalance(address: string): Promise<BalanceResponse> {
-    const { data } = await axios.get<BalanceResponse>(
-      `${API_BASE_URL}/api/wallet/balance`,
-      { params: { address } }
-    );
-    return data;
-  }
-
-  /**
-   * Poll the backend for the transaction status.
-   * Returns current status and Stellar explorer URL.
-   * Backend queries Horizon to determine if transaction was confirmed.
-   */
-  async getTransactionStatus(transactionHash: string): Promise<TransactionResponse> {
-    const { data } = await axios.get<TransactionResponse>(
-      `${API_BASE_URL}/api/wallet/transaction/${transactionHash}`
-    );
-
-    // Append explorer URL based on network
-    const network = process.env.NEXT_PUBLIC_STELLAR_NETWORK || 'testnet';
-    const explorerBase = network === 'public' ? STELLAR_PUBLIC_EXPLORER : STELLAR_TESTNET_EXPLORER;
-
-    return {
-      ...data,
-      stellarExplorerUrl: `${explorerBase}${transactionHash}`,
-    };
-  }
-
-  /**
-   * Connect a new wallet with address and provider to the backend API.
-   * Data Source: Retrieved from the backend API.
-   */
-  async connectWallet(
-    address: string,
-    walletType: string = 'freighter'
-  ): Promise<ConnectWalletResponse> {
-    const { data } = await axios.post<ConnectWalletResponse>(
-      `${API_BASE_URL}/api/wallet/connected`,
-      { address, provider: walletType, walletType }
-    );
-
-    if (!data.success) {
-      throw new Error(data.message || 'Failed to connect wallet');
+  async connect(publicKey: string): Promise<{ success: boolean; message?: string; publicKey: string }> {
+    try {
+      const response = await fetch('/api/wallet/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ publicKey }),
+      });
+      const data = await response.json();
+      return { success: response.ok, message: data.message, publicKey };
+    } catch (error) {
+      console.error('Error connecting wallet:', error);
+      return { success: false, message: 'Failed to connect wallet', publicKey };
     }
-
-    return data;
   }
 
   /**
-   * Set a connected wallet as primary on the backend.
-   * Returns confirmation response.
+   * Notify the backend to invalidate the wallet session.
    */
-  async setPrimaryWallet(walletId: string): Promise<SetPrimaryWalletResponse> {
-    const { data } = await axios.put<SetPrimaryWalletResponse>(
-      `${API_BASE_URL}/api/wallet/connected/${walletId}/primary`
-    );
-
-    if (!data.success) {
-      throw new Error(data.message || 'Failed to set primary wallet');
+  async disconnect(): Promise<void> {
+    try {
+      await fetch('/api/wallet/disconnect', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : ''}`,
+        },
+      });
+    } catch (error) {
+      console.debug('Disconnect API call failed (session cleared client-side):', error);
     }
-
-    return data;
   }
 
   /**
-   * Fetch every Web3 wallet linked to the authenticated account.
-   * Data Source: Retrieved from /api/wallet/connected backend endpoint.
+   * Fetch the status of a blockchain transaction by hash.
    */
-  async getConnectedWallets(signal?: AbortSignal): Promise<ConnectedWallet[]> {
-    const { data } = await axios.get<ConnectedWalletsResponse>(
-      `${API_BASE_URL}/api/wallet/connected`,
-      { signal }
-    );
-
-    if (!data.success || !Array.isArray(data.data)) {
-      throw new Error(data.message || 'Failed to fetch connected wallets');
+  async getTransactionStatus(transactionHash: string): Promise<import('@/types/transaction').TransactionResponse> {
+    const response = await fetch(`/api/wallet/transaction/${transactionHash}`, {
+      headers: {
+        Authorization: `Bearer ${typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : ''}`,
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch transaction status: ${response.statusText}`);
     }
-
-    return data.data;
+    return response.json();
   }
 
   /**
-   * Unlink a single wallet from the authenticated account.
-   * Disconnect clears wallet from backend.
+   * Fetch pending multi-signature operations for a wallet address.
    */
-  async disconnectWallet(walletId: string): Promise<DisconnectResponse> {
-    const { data } = await axios.delete<DisconnectResponse>(
-      `${API_BASE_URL}/api/wallet/connected/${walletId}`
-    );
-
-    if (!data.success) {
-      throw new Error(data.message || 'Failed to disconnect wallet');
+  async getPendingMultiSigOperations(
+    walletAddress: string
+  ): Promise<{ success: boolean; message?: string; operations?: import('@/hooks/useMultiSigApprovals').PendingMultiSigOperation[] }> {
+    try {
+      const response = await fetch(`/api/wallet/multisig/pending?address=${encodeURIComponent(walletAddress)}`, {
+        headers: {
+          Authorization: `Bearer ${typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : ''}`,
+        },
+      });
+      const data = await response.json();
+      return { success: response.ok, operations: data.data, message: data.message };
+    } catch (error) {
+      console.error('Error fetching multi-sig operations:', error);
+      return { success: false, message: 'Failed to fetch pending operations' };
     }
-
-    return data;
   }
+
+  /**
+   * Submit a signature for a multi-sig operation.
+   */
+  async signMultiSigOperation(params: {
+    operationId: string;
+    signature: string;
+    signerPublicKey: string;
+  }): Promise<{ success: boolean; message?: string; currentSignatures?: number }> {
+    try {
+      const response = await fetch('/api/wallet/multisig/sign', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : ''}`,
+        },
+        body: JSON.stringify(params),
+      });
+      const data = await response.json();
+      return { success: response.ok, message: data.message, currentSignatures: data.currentSignatures };
+    } catch (error) {
+      console.error('Error signing multi-sig operation:', error);
+      return { success: false, message: 'Failed to sign operation' };
+    }
+  }
+
 }
 
 export const walletService = WalletService.getInstance();

@@ -118,7 +118,8 @@ export default function ToastProvider({
    * Handle toast display based on configuration
    */
   const handleToast = (config: ToastConfig): void => {
-    const { variant, message, description, duration, action } = config;
+    const { variant, description, duration, action } = config;
+    const message = config.message ?? config.title ?? '';
 
     switch (variant) {
       case 'success':

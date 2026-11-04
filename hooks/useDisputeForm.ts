@@ -96,13 +96,6 @@ export function useDisputeForm(): UseDisputeFormReturn {
 
         const response = await escrowService.openDispute(params);
 
-        if (!response.success) {
-          const errorMessage = response.message ?? 'Failed to open dispute. Please try again.';
-          toast.error(errorMessage);
-          onError?.(errorMessage);
-          return;
-        }
-
         toast.success(
           `Dispute opened successfully! Dispute ID: ${response.disputeId}`
         );

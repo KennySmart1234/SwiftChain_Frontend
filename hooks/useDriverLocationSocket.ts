@@ -60,7 +60,7 @@ export function useDriverLocationSocket(
   const locationStateRef = useRef<LocationState>({
     current: { lat: 0, lng: 0 },
     target: { lat: 0, lng: 0 },
-    lastUpdateTime: Date.now(),
+    lastUpdateTime: 0,
     animationFrameId: null,
   });
 
@@ -68,7 +68,7 @@ export function useDriverLocationSocket(
    * Interpolates from current to target position linearly over INTERPOLATION_DURATION_MS.
    * Called on every animation frame.
    */
-  const updateInterpolation = useCallback(() => {
+  const updateInterpolation = useCallback(function updateInterpolation() {
     const state = locationStateRef.current;
     const now = Date.now();
     const elapsed = now - state.lastUpdateTime;

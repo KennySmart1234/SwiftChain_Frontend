@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import axios from 'axios';
+import { isCancel } from '@/lib/httpClient';
 import { industryService } from '@/services/industryService';
 import type {
   IndustryHeroContent,
@@ -41,7 +41,7 @@ export function useIndustryHero(): UseIndustryHeroResult {
         setError(null);
       })
       .catch((err: unknown) => {
-        if (cancelled || axios.isCancel(err)) return;
+        if (cancelled || isCancel(err)) return;
         setError(
           err instanceof Error && err.message
             ? err.message

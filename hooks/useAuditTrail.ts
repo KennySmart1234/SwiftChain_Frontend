@@ -118,16 +118,18 @@ export function useAuditTrail(
     refetchInterval: options?.refetchInterval,
     retry: 2,
   });
+  const events = data?.data?.events;
+  const paginationData = data?.data?.pagination;
 
   /**
    * Normalize events for display with icons, colors, and formatted timestamps
    */
   const normalizedEvents = useMemo<NormalizedAuditEvent[]>(() => {
-    if (!data?.data?.events) {
+    if (!events) {
       return [];
     }
 
-    return data.data.events.map((event) => {
+    return events.map((event) => {
       const { icon, color } = auditService.getEventIcon(event.eventType);
       const displayTimestamp = auditService.formatTimestamp(event.timestamp);
 
@@ -138,13 +140,13 @@ export function useAuditTrail(
         displayTimestamp,
       };
     });
-  }, [data?.data?.events]);
+  }, [events]);
 
   /**
    * Extract pagination information from response
    */
   const pagination = useMemo(() => {
-    if (!data?.data?.pagination) {
+    if (!paginationData) {
       return {
         nextCursor: undefined,
         prevCursor: undefined,
@@ -154,12 +156,12 @@ export function useAuditTrail(
     }
 
     return {
-      nextCursor: data.data.pagination.nextCursor,
-      prevCursor: data.data.pagination.prevCursor,
-      hasMore: data.data.pagination.hasMore,
-      pageSize: data.data.pagination.pageSize,
+      nextCursor: paginationData.nextCursor,
+      prevCursor: paginationData.prevCursor,
+      hasMore: paginationData.hasMore,
+      pageSize: paginationData.pageSize,
     };
-  }, [data?.data?.pagination, pageSize]);
+  }, [paginationData, pageSize]);
 
   /**
    * Fetch next page of results

@@ -3,7 +3,7 @@
  * Handles API calls for delivery route tracking and map data
  */
 
-import axios from 'axios';
+import axios, { isAxiosError } from '@/lib/httpClient';
 import { RouteData, RouteResult } from '@/types/tracking';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
@@ -36,7 +36,7 @@ export async function getDeliveryRoute(deliveryId: string): Promise<RouteData> {
 
     return response.data.data;
   } catch (error) {
-    if (axios.isAxiosError(error)) {
+    if (isAxiosError(error)) {
       if (error.response?.status === 404) {
         throw new Error(`Delivery not found: ${deliveryId}`);
       }
@@ -82,7 +82,7 @@ export async function getCurrentLocation(
 
     return response.data.data;
   } catch (error) {
-    if (axios.isAxiosError(error)) {
+    if (isAxiosError(error)) {
       throw new Error(error.response?.data?.error || 'Failed to fetch current location');
     }
     throw error;
@@ -124,7 +124,7 @@ export async function calculateRoute(
 
     return response.data.data.waypoints || [];
   } catch (error) {
-    if (axios.isAxiosError(error)) {
+    if (isAxiosError(error)) {
       throw new Error(error.response?.data?.error || 'Failed to calculate route');
     }
     throw error;

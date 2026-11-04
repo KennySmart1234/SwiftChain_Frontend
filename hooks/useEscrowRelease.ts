@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
-import { escrowService, EscrowDetails } from '@/services/escrowService';
+import { escrowService } from '@/services/escrowService';
+import type { EscrowDetails } from '@/types/escrow';
 
 export type ReleaseStep = 'idle' | 'confirming' | 'signing' | 'releasing' | 'done';
 
@@ -33,12 +34,8 @@ export function useEscrowRelease(): UseEscrowReleaseReturn {
   const fetchEscrowDetails = useCallback(async (escrowId: string) => {
     setIsLoading(true);
     try {
-      const response = await escrowService.getEscrowDetails(escrowId);
-      if (response.success && response.data) {
-        setEscrowDetails(response.data);
-      } else {
-        toast.error(response.message ?? 'Failed to load escrow details.');
-      }
+      const details = await escrowService.getEscrowDetails(escrowId);
+      setEscrowDetails(details);
     } catch {
       toast.error('Unable to fetch escrow details. Please try again.');
     } finally {
@@ -82,7 +79,7 @@ export function useEscrowRelease(): UseEscrowReleaseReturn {
             : 'Payment released successfully!'
         );
         setEscrowDetails((prev) =>
-          prev ? { ...prev, status: 'released' as const } : prev
+          prev ? { ...prev, isReleased: true } : prev
         );
       } catch (err: unknown) {
         setStep('idle');

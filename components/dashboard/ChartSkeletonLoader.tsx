@@ -9,6 +9,8 @@
  *   - Dark mode support
  *   - Accessible with appropriate ARIA attributes
  */
+const chartBarHeights = [72, 128, 96, 164, 112, 144, 84, 152, 104, 132, 68, 120];
+
 export function ChartSkeletonLoader() {
   return (
     <div className="space-y-4" role="status" aria-label="Loading chart data">
@@ -30,14 +32,14 @@ export function ChartSkeletonLoader() {
           <div className="space-y-2">
             {/* SVG chart area placeholder */}
             <div className="flex items-end gap-1">
-              {Array.from({ length: 12 }).map((_, i) => (
+              {chartBarHeights.map((height, i) => (
                 <div
                   key={i}
                   className="animate-pulse rounded bg-slate-300 dark:bg-slate-600"
                   style={{
                     flex: 1,
-                    height: `${Math.random() * 150 + 50}px`,
-                    opacity: 0.5 + Math.random() * 0.5,
+                    height: `${height}px`,
+                    opacity: 0.6 + (i % 3) * 0.1,
                   }}
                 />
               ))}

@@ -1,10 +1,1 @@
-import axios from 'axios';
-
-export const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Configure interceptors if needed later
+export { default as apiClient } from '@/lib/httpClient';

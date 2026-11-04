@@ -5,6 +5,7 @@ import { escrowService, LockEscrowParams } from '@/services/escrowService';
 
 interface UseEscrowLockState {
   isLoading: boolean;
+  isSuccess: boolean;
   error: string | null;
   escrowId: string | null;
   transactionHash: string | null;
@@ -17,18 +18,20 @@ interface UseEscrowLockState {
 export function useEscrowLock() {
   const [state, setState] = useState<UseEscrowLockState>({
     isLoading: false,
+    isSuccess: false,
     error: null,
     escrowId: null,
     transactionHash: null,
   });
 
   const lockEscrow = useCallback(async (params: LockEscrowParams) => {
-    setState({ isLoading: true, error: null, escrowId: null, transactionHash: null });
+    setState({ isLoading: true, isSuccess: false, error: null, escrowId: null, transactionHash: null });
 
     try {
       const response = await escrowService.lockEscrow(params);
       setState({
         isLoading: false,
+        isSuccess: true,
         error: null,
         escrowId: response.escrowId,
         transactionHash: response.transactionHash,
@@ -38,6 +41,7 @@ export function useEscrowLock() {
       const errorMessage = err instanceof Error ? err.message : 'Failed to lock escrow';
       setState({
         isLoading: false,
+        isSuccess: false,
         error: errorMessage,
         escrowId: null,
         transactionHash: null,
@@ -47,7 +51,7 @@ export function useEscrowLock() {
   }, []);
 
   const reset = useCallback(() => {
-    setState({ isLoading: false, error: null, escrowId: null, transactionHash: null });
+    setState({ isLoading: false, isSuccess: false, error: null, escrowId: null, transactionHash: null });
   }, []);
 
   return {

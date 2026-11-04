@@ -36,7 +36,7 @@ export function useTxTracker(transactionHash: string | null) {
       }
       
       // Active polling: increase interval over time (exponential backoff)
-      const pollCount = (query.state.dataUpdatedAt - query.state.dataUndefinedAt) / POLL_INTERVAL;
+      const pollCount = Math.floor((Date.now() - query.state.dataUpdatedAt) / POLL_INTERVAL);
       const interval = Math.min(POLL_INTERVAL * Math.pow(1.5, Math.floor(pollCount / 3)), MAX_POLL_INTERVAL);
       return interval;
     },

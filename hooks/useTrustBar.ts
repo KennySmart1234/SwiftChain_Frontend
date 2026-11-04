@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import axios from 'axios';
+import { isCancel } from '@/lib/httpClient';
 import { trustBarService } from '@/services/trustBarService';
 import type { TrustBarResponse } from '@/types/trustBar';
 
@@ -33,7 +33,7 @@ export function useTrustBar(): UseTrustBarResult {
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        if (axios.isCancel(err)) return;
+        if (isCancel(err)) return;
         const message =
           err instanceof Error && err.message
             ? err.message

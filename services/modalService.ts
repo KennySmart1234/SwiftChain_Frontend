@@ -4,7 +4,7 @@
  * Follows the Service pattern for clean separation of concerns
  */
 
-import axios from 'axios';
+import axios from '@/lib/httpClient';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 

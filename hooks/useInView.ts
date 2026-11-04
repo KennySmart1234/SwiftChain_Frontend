@@ -38,14 +38,15 @@ export function useInView(
 ): UseInViewResult {
   const internalRef = useRef<HTMLDivElement>(null);
   const targetRef = ref || internalRef;
-  const [isInView, setIsInView] = useState(false);
+  const [isInView, setIsInView] = useState(
+    () => typeof IntersectionObserver === 'undefined',
+  );
 
   useEffect(() => {
     if (!targetRef.current) return;
 
     // Fallback for browsers without Intersection Observer support
     if (typeof IntersectionObserver === 'undefined') {
-      setIsInView(true);
       return;
     }
 

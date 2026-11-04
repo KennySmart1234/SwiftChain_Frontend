@@ -57,11 +57,13 @@ describe('useEscrowPayout — Integration Tests with React Query and Mocked Web3
     ],
   };
 
-  const createWrapper = () => {
-    return ({ children }: { children: React.ReactNode }) => (
+  function TestQueryClientProvider({ children }: { children: React.ReactNode }) {
+    return (
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     );
-  };
+  }
+
+  const createWrapper = () => TestQueryClientProvider;
 
   beforeEach(() => {
     jest.clearAllMocks();

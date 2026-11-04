@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
+import { isCancel } from '@/lib/httpClient';
 import { fleetService } from '@/services/fleetService';
 import type { Driver, FleetSummary } from '@/types/fleet';
 
@@ -47,7 +47,7 @@ export function useFleet(): UseFleetResult {
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        if (axios.isCancel(err)) return;
+        if (isCancel(err)) return;
         const message =
           err instanceof Error && err.message
             ? err.message

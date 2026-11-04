@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import axios from 'axios';
+import { isCancel } from '@/lib/httpClient';
 import { z } from 'zod';
 import { ctaService } from '@/services/ctaService';
 import type { CtaRegistrationResponse } from '@/types/cta';
@@ -65,7 +65,7 @@ export function useCallToAction(): UseCallToActionReturn {
         setResponseMessage(response.message);
         form.reset();
       } catch (err: unknown) {
-        if (axios.isCancel(err)) return;
+        if (isCancel(err)) return;
 
         const message =
           err instanceof Error && err.message

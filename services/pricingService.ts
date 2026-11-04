@@ -1,5 +1,5 @@
-import axios from 'axios';
-import type { PricingCardsResponse, PricingComparison, PricingFAQResponse } from '@/types/pricing';
+import axios from '@/lib/httpClient';
+import type { PricingComparison } from '@/types/pricing';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 

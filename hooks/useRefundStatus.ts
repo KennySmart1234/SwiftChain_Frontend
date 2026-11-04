@@ -201,7 +201,7 @@ export function useRefundStatus(
    * Fetch refund status from backend.
    * Handles loading, error, and polling state management.
    */
-  const fetchRefundStatus = useCallback(async (): Promise<void> => {
+  const fetchRefundStatus = useCallback(async function fetchRefundStatus(): Promise<void> {
     if (!shipmentId) return;
 
     setIsLoading(true);

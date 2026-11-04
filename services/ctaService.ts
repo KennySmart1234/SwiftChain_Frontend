@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '@/lib/httpClient';
 import type { CtaRegistrationPayload, CtaRegistrationResponse } from '@/types/cta';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
